@@ -29,18 +29,3 @@ def torch_scatter_nd_update(tensor: torch.Tensor, indices: torch.Tensor, updates
     """tensor has rank 2, indices has size [num_samples, 2], updates has rank n"""
     tensor[indices[:, 0], indices[:, 1]] = updates
     return tensor
-
-
-class Timer:
-    def __init__(self):
-        self._start_time = time.time()
-        self._last_time = time.time()
-
-    def reset(self):
-        elapsed_time = time.time() - self._last_time
-        self._last_time = time.time()
-        total_time = time.time() - self._start_time
-        return elapsed_time, total_time
-
-    def total_time(self):
-        return time.time() - self._start_time

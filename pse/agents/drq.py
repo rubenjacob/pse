@@ -1,9 +1,10 @@
-from typing import Dict, Any
+from typing import Dict, Any, Iterator
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
 
 import utils
 import hydra
@@ -127,7 +128,7 @@ class Critic(nn.Module):
         return q1, q2
 
 
-class DRQAgent(object):
+class DrQAgent(object):
     """Data regularized Q: actor-critic method for learning from pixels."""
     def __init__(self, action_shape, action_range, device, critic_cfg, actor_cfg, discount,
                  init_temperature, lr, actor_update_frequency, critic_tau, critic_target_update_frequency, batch_size):
@@ -263,7 +264,7 @@ class DRQAgent(object):
 
         return metrics
 
-    def update(self, replay_iter, step):
+    def update(self, replay_iter: Iterator[DataLoader], step):
         metrics: Dict[str, Any] = dict()
 
         batch = next(replay_iter)

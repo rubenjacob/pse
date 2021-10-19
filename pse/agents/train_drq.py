@@ -1,53 +1,20 @@
 from pathlib import Path
+from typing import Iterator
 
-import dmc2gym
 import hydra
 import numpy as np
 import torch
 from dm_env import specs
+from torch.utils.data import DataLoader
 
 import utils
-from pse.agents.drq import DRQAgent
-from pse.utils.helper_functions import Timer
+from pse.agents.drq import DrQAgent
+from pse.envs.env_utils import make_env
 from pse.utils.logger import Logger
 from pse.data.replay_buffer import make_replay_loader, ReplayBufferStorage
 from pse.utils.video_recorder import VideoRecorder, TrainVideoRecorder
 
 torch.backends.cudnn.benchmark = True
-
-
-def make_env(cfg):
-    """Helper function to create dm_control environment"""
-    if cfg.env == 'ball_in_cup_catch':
-        domain_name = 'ball_in_cup'
-        task_name = 'catch'
-    elif cfg.env == 'point_mass_easy':
-        domain_name = 'point_mass'
-        task_name = 'easy'
-    else:
-        domain_name = cfg.env.split('_')[0]
-        task_name = '_'.join(cfg.env.split('_')[1:])
-
-    # per dreamer: https://github.com/danijar/dreamer/blob/02f0210f5991c7710826ca7881f19c64a012290c/wrappers.py#L26
-    camera_id = 2 if domain_name == 'quadruped' else 0
-
-    env = dmc2gym.make(domain_name=domain_name,
-                       task_name=task_name,
-                       seed=cfg.seed,
-                       visualize_reward=False,
-                       from_pixels=True,
-                       height=cfg.image_size,
-                       width=cfg.image_size,
-                       frame_skip=cfg.action_repeat,
-                       camera_id=camera_id)
-
-    env = utils.FrameStack(env, k=cfg.frame_stack)
-
-    env.seed(cfg.seed)
-    assert env.action_space.low.min() >= -1
-    assert env.action_space.high.max() <= 1
-
-    return env
 
 
 def make_agent(obs_spec, action_spec, cfg):
@@ -61,6 +28,7 @@ class Workspace:
     def __init__(self, cfg):
         self.work_dir = Path.cwd()
         print(f'workspace: {self.work_dir}')
+        self.snapshot_dir = self.work_dir / 'snapshots'
 
         self.cfg = cfg
 
@@ -72,7 +40,7 @@ class Workspace:
         self.train_env = make_env(cfg)
         self.eval_env = make_env(cfg)
 
-        self.agent: DRQAgent = make_agent(obs_spec=self.train_env.observation_spec(),
+        self.agent: DrQAgent = make_agent(obs_spec=self.train_env.observation_spec(),
                                           action_spec=self.train_env.action_spec(),
                                           cfg=self.cfg.agent)
 
@@ -96,24 +64,24 @@ class Workspace:
         self.video_recorder = VideoRecorder(root_dir=self.work_dir if self.cfg.save_video else None)
         self.train_video_recorder = TrainVideoRecorder(root_dir=self.work_dir if self.cfg.save_train_video else None)
 
-        self.timer = Timer()
+        self.timer = utils.Timer()
         self._global_step = 0
         self._global_episode = 0
 
     @property
-    def global_step(self):
+    def global_step(self) -> int:
         return self._global_step
 
     @property
-    def global_episode(self):
+    def global_episode(self) -> int:
         return self._global_episode
 
     @property
-    def global_frame(self):
+    def global_frame(self) -> int:
         return self.global_step * self.cfg.action_repeat
 
     @property
-    def replay_iter(self):
+    def replay_iter(self) -> Iterator[DataLoader]:
         if self._replay_iter is None:
             self._replay_iter = iter(self.replay_loader)
         return self._replay_iter
@@ -204,21 +172,21 @@ class Workspace:
             self._global_step += 1
 
     def save_snapshot(self):
-        snapshot = self.work_dir / 'snapshot.pt'
+        snapshot = self.snapshot_dir / 'snapshot.pt'
         keys_to_save = ['agent', 'timer', '_global_step', '_global_episode']
         payload = {k: self.__dict__[k] for k in keys_to_save}
         with snapshot.open('wb') as f:
             torch.save(payload, f)
 
     def load_snapshot(self):
-        snapshot = self.work_dir / 'snapshot.pt'
+        snapshot = self.snapshot_dir / 'snapshot.pt'
         with snapshot.open('rb') as f:
             payload = torch.load(f)
         for k, v in payload.items():
             self.__dict__[k] = v
 
 
-@hydra.main(config_path='config.yaml', strict=True)
+@hydra.main(config_path='configs/config.yaml', strict=True)
 def main(cfg):
     workspace = Workspace(cfg)
     snapshot = Path.cwd() / 'snapshot.pt'

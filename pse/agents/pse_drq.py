@@ -1,32 +1,12 @@
-from typing import Union, Tuple, Dict, Any
+from typing import Union, Tuple, Dict, Any, Iterator
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch.utils.data import DataLoader
 
 from pse.agents import utils
-from pse.agents.drq import DRQAgent
+from pse.agents.drq import DrQAgent
 from pse.utils.helper_functions import torch_gather_nd, torch_scatter_nd_update, EPS, sample_indices, cosine_similarity
-
-
-def metric_fixed_point_fast(cost_matrix, gamma=0.99, eps=1e-7):
-    """Dynamic programming for calculating PSM."""
-    d = np.zeros_like(cost_matrix)
-    def operator(d_cur):
-        d_new = 1 * cost_matrix
-        discounted_d_cur = gamma * d_cur
-        d_new[:-1, :-1] += discounted_d_cur[1:, 1:]
-        d_new[:-1, -1] += discounted_d_cur[1:, -1]
-        d_new[-1, :-1] += discounted_d_cur[-1, 1:]
-        return d_new
-
-    while True:
-        d_new = operator(d)
-        if np.sum(np.abs(d - d_new)) < eps:
-            break
-        else:
-            d = d_new[:]
-    return d
 
 
 def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor, temperature: float,
@@ -50,7 +30,7 @@ def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor,
     return torch.mean(neg_logits1 - pos_logits1)
 
 
-class PSEDRQAgent(DRQAgent):
+class PSEDRQAgent(DrQAgent):
     def __init__(self, action_shape, action_range, device, critic_cfg, actor_cfg, discount,
                  init_temperature, lr, actor_update_frequency, critic_tau, critic_target_update_frequency, batch_size,
                  contrastive_loss_weight, contrastive_loss_temperature):
@@ -61,7 +41,8 @@ class PSEDRQAgent(DRQAgent):
         self._contrastive_loss_weight = contrastive_loss_weight
         self._contrastive_loss_temperature = contrastive_loss_temperature
 
-    def contrastive_metric_loss(self, obs1, obs2, metric_vals: torch.Tensor, use_coupling_weights: bool = False,
+    def contrastive_metric_loss(self, obs1: torch.Tensor, obs2: torch.Tensor, metric_vals: torch.Tensor,
+                                use_coupling_weights: bool = False,
                                 coupling_temperature: float = 0.1, return_representation: bool = False,
                                 temperature: float = 1.0) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if np.random.randint(2) == 1:
@@ -86,7 +67,7 @@ class PSEDRQAgent(DRQAgent):
         else:
             return alignment_loss
 
-    def update(self, replay_iter, step):
+    def update(self, replay_iter: Iterator[DataLoader], step: int):
         metrics: Dict[str, Any] = dict()
 
         batch = next(replay_iter)
