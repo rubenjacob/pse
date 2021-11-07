@@ -30,7 +30,7 @@ def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor,
     return torch.mean(neg_logits1 - pos_logits1)
 
 
-class PSEDRQAgent(DrQAgent):
+class PSEDrQAgent(DrQAgent):
     def __init__(self, action_shape, action_range, device, critic_cfg, actor_cfg, discount,
                  init_temperature, lr, actor_update_frequency, critic_tau, critic_target_update_frequency, batch_size,
                  contrastive_loss_weight, contrastive_loss_temperature):

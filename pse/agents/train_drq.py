@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 import utils
 from pse.agents.drq import DrQAgent
-from pse.envs.env_utils import make_env
+from pse.envs import dmc
 from pse.utils.logger import Logger
 from pse.data.replay_buffer import make_replay_loader, ReplayBufferStorage
 from pse.utils.video_recorder import VideoRecorder, TrainVideoRecorder
@@ -17,7 +17,7 @@ from pse.utils.video_recorder import VideoRecorder, TrainVideoRecorder
 torch.backends.cudnn.benchmark = True
 
 
-def make_agent(obs_spec, action_spec, cfg):
+def make_agent(obs_spec: specs.Array, action_spec: specs.Array, cfg):
     cfg.obs_shape = obs_spec.shape
     cfg.action_shape = action_spec.shape
     return hydra.utils.instantiate(cfg)
@@ -29,6 +29,7 @@ class Workspace:
         self.work_dir = Path.cwd()
         print(f'workspace: {self.work_dir}')
         self.snapshot_dir = self.work_dir / 'snapshots'
+        self.snapshot_dir.mkdir(exist_ok=True)
 
         self.cfg = cfg
 
@@ -37,8 +38,8 @@ class Workspace:
         utils.set_seed_everywhere(cfg.seed)
         self.device = torch.device(cfg.device)
 
-        self.train_env = make_env(cfg)
-        self.eval_env = make_env(cfg)
+        self.train_env = dmc.make(self.cfg.task_name, self.cfg.frame_stack, self.cfg.action_repeat, self.cfg.seed)
+        self.eval_env = dmc.make(self.cfg.task_name, self.cfg.frame_stack, self.cfg.action_repeat, self.cfg.seed)
 
         self.agent: DrQAgent = make_agent(obs_spec=self.train_env.observation_spec(),
                                           action_spec=self.train_env.action_spec(),
