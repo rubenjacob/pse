@@ -1,11 +1,11 @@
 defaults:
   - _self_
-  - task@_global_: quadruped_walk
+  - task@_global_: ball_in_cup_catch
   - override hydra/launcher: submitit_local
 
 # task settings
-frame_stack: 3
-action_repeat: 2
+frame_stack: 4
+action_repeat: 3
 discount: 0.99
 # train settings
 num_seed_frames: 4000
@@ -13,7 +13,8 @@ num_seed_frames: 4000
 eval_every_frames: 10000
 num_eval_episodes: 10
 # snapshot
-save_snapshot: false
+save_snapshot: true
+snapshot_interval: 10000
 # replay buffer
 replay_buffer_size: 1000000
 replay_buffer_num_workers: 4
@@ -30,6 +31,11 @@ experiment: exp
 # agent
 lr: 1e-4
 feature_dim: 50
+# pse
+contrastive_loss_weight: 1.0
+contrastive_loss_temperature: 0.1
+# directories
+root_dir: '$HOME/pse/results'
 
 agent:
   _target_: pse.agents.drq.DrQAgent
@@ -46,17 +52,17 @@ agent:
   stddev_schedule: ${stddev_schedule}
   stddev_clip: 0.3
 
-hydra:
-  run:
-    dir: ./exp_local/${now:%Y.%m.%d}/${now:%H%M%S}_${hydra.job.override_dirname}
-  sweep:
-    dir: ./exp/${now:%Y.%m.%d}/${now:%H%M}_${agent_cfg.experiment}
-    subdir: ${hydra.job.num}
-  launcher:
-    timeout_min: 4300
-    cpus_per_task: 10
-    gpus_per_node: 1
-    tasks_per_node: 1
-    mem_gb: 160
-    nodes: 1
-    submitit_folder: ./exp/${now:%Y.%m.%d}/${now:%H%M%S}_${agent_cfg.experiment}/.slurm
+#hydra:
+#  run:
+#    dir: ./exp_local/${now:%Y.%m.%d}/${now:%H%M%S}_${hydra.job.override_dirname}
+#  sweep:
+#    dir: ./exp/${now:%Y.%m.%d}/${now:%H%M}_${agent_cfg.experiment}
+#    subdir: ${hydra.job.num}
+#  launcher:
+#    timeout_min: 4300
+#    cpus_per_task: 10
+#    gpus_per_node: 1
+#    tasks_per_node: 1
+#    mem_gb: 160
+#    nodes: 1
+#    submitit_folder: ./exp/${now:%Y.%m.%d}/${now:%H%M%S}_${agent_cfg.experiment}/.slurm
