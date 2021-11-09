@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Optional
 
 import hydra
 import numpy as np
@@ -106,7 +106,7 @@ class Workspace:
                 step += 1
 
             episode += 1
-            self.video_recorder.save(file_name=f'{self.global_frame}.mp4')
+            self.video_recorder.save(file_name=Path(f'{self.global_frame}.mp4'))
 
         with self.logger.log_and_dump_ctx(self.global_frame, train_or_eval='eval') as log:
             log('episode_reward', total_reward / episode)
@@ -119,6 +119,7 @@ class Workspace:
         train_until_step = utils.Until(until=self.cfg.num_train_frames, action_repeat=self.cfg.action_repeat)
         seed_until_step = utils.Until(until=self.cfg.num_seed_frames, action_repeat=self.cfg.action_repeat)
         eval_every_step = utils.Every(every=self.cfg.eval_every_frames, action_repeat=self.cfg.action_repeat)
+        save_every_step = utils.Every(every=self.cfg.snapshot_interval, action_repeat=self.cfg.action_repeat)
 
         episode_step, episode_reward = 0, 0
         time_step = self.train_env.reset()
@@ -145,7 +146,7 @@ class Workspace:
                 time_step = self.train_env.reset()
                 self.replay_storage.add(time_step=time_step)
                 # try to save snapshot
-                if self.cfg.save_snapshot:
+                if self.cfg.save_snapshot and save_every_step(step=self.global_step):
                     self.save_snapshot()
                 episode_step = 0
                 episode_reward = 0
@@ -172,14 +173,19 @@ class Workspace:
             self._global_step += 1
 
     def save_snapshot(self):
-        snapshot = self.snapshot_dir / 'snapshot.pt'
+        snapshot = self.snapshot_dir / f'snapshot-{self.global_step:07d}.pt'
         keys_to_save = ['agent', 'timer', '_global_step', '_global_episode']
         payload = {k: self.__dict__[k] for k in keys_to_save}
         with snapshot.open('wb') as f:
             torch.save(payload, f)
 
-    def load_snapshot(self):
-        snapshot = self.snapshot_dir / 'snapshot.pt'
+    def load_snapshot(self, step_to_load: Optional[int] = None):
+        if step_to_load is not None:
+            snapshot = self.snapshot_dir / f'snapshot-{step_to_load:07d}.pt'
+        else:
+            snapshot_files = self.snapshot_dir.glob('*.pt')
+            latest_step = max([int(str(file)[9:-3]) for file in snapshot_files])
+            snapshot = self.snapshot_dir / f'snapshot-{latest_step:07d}.pt'
         with snapshot.open('rb') as f:
             payload = torch.load(f)
         for k, v in payload.items():
@@ -189,9 +195,7 @@ class Workspace:
 @hydra.main(config_path='configs/config.yaml', strict=True)
 def main(cfg):
     workspace = Workspace(cfg)
-    snapshot = Path.cwd() / 'snapshot.pt'
-    if snapshot.exists():
-        print(f'resuming: {snapshot}')
+    if cfg.resume_from_snapshot:
         workspace.load_snapshot()
     workspace.train()
 
