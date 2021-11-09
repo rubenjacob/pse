@@ -4,6 +4,7 @@ from typing import Iterator
 import hydra
 import numpy as np
 import torch
+import wandb
 from dm_env import specs
 from torch.utils.data import DataLoader
 
@@ -12,7 +13,7 @@ from pse.agents.drq import DrQAgent
 from pse.envs import dmc
 from pse.utils.logger import Logger
 from pse.data.replay_buffer import make_replay_loader, ReplayBufferStorage
-from pse.utils.video_recorder import VideoRecorder, TrainVideoRecorder
+from pse.utils.video_recorder import VideoRecorder
 
 torch.backends.cudnn.benchmark = True
 
@@ -33,7 +34,10 @@ class Workspace:
 
         self.cfg = cfg
 
-        self.logger = Logger(self.work_dir, use_tb=self.cfg.use_tb)
+        if self.cfg.use_wandb:
+            wandb.init(config=cfg)
+
+        self.logger = Logger(self.work_dir, use_tb=self.cfg.use_tb, use_wandb=self.cfg.use_wandb, cfg=self.cfg)
 
         utils.set_seed_everywhere(cfg.seed)
         self.device = torch.device(cfg.device)
@@ -62,8 +66,7 @@ class Workspace:
                                                 discount=self.cfg.discount)
         self._replay_iter = None
 
-        self.video_recorder = VideoRecorder(root_dir=self.work_dir if self.cfg.save_video else None)
-        self.train_video_recorder = TrainVideoRecorder(root_dir=self.work_dir if self.cfg.save_train_video else None)
+        self.video_recorder = VideoRecorder(root_dir=self.work_dir if self.cfg.save_video else None, log_to_wandb=True)
 
         self.timer = utils.Timer()
         self._global_step = 0
@@ -105,7 +108,7 @@ class Workspace:
             episode += 1
             self.video_recorder.save(file_name=f'{self.global_frame}.mp4')
 
-        with self.logger.log_and_dump_ctx(self.global_frame, ty='eval') as log:
+        with self.logger.log_and_dump_ctx(self.global_frame, train_or_eval='eval') as log:
             log('episode_reward', total_reward / episode)
             log('episode_length', step * self.cfg.action_repeat / episode)
             log('episode', self.global_episode)
@@ -120,18 +123,16 @@ class Workspace:
         episode_step, episode_reward = 0, 0
         time_step = self.train_env.reset()
         self.replay_storage.add(time_step=time_step)
-        self.train_video_recorder.init(obs=time_step.observation)
         metrics = None
         while train_until_step(step=self.global_step):
             if time_step.last():
                 self._global_episode += 1
-                self.train_video_recorder.save(file_name=f'{self.global_frame}.mp4')
                 # wait until all the metrics schema is populated
                 if metrics is not None:
                     # log stats
                     elapsed_time, total_time = self.timer.reset()
                     episode_frame = episode_step * self.cfg.action_repeat
-                    with self.logger.log_and_dump_ctx(self.global_frame, ty='train') as log:
+                    with self.logger.log_and_dump_ctx(self.global_frame, train_or_eval='train') as log:
                         log('fps', episode_frame / elapsed_time)
                         log('total_time', total_time)
                         log('episode_reward', episode_reward)
@@ -143,7 +144,6 @@ class Workspace:
                 # reset env
                 time_step = self.train_env.reset()
                 self.replay_storage.add(time_step=time_step)
-                self.train_video_recorder.init(obs=time_step.observation)
                 # try to save snapshot
                 if self.cfg.save_snapshot:
                     self.save_snapshot()
@@ -162,13 +162,12 @@ class Workspace:
             # try to update the agent
             if not seed_until_step(step=self.global_step):
                 metrics = self.agent.update(replay_iter=self.replay_iter, step=self.global_step)
-                self.logger.log_metrics(metrics, self.global_frame, ty='train')
+                self.logger.log_metrics(metrics, self.global_frame, train_or_eval='train')
 
             # take env step
             time_step = self.train_env.step(action)
             episode_reward += time_step.reward
             self.replay_storage.add(time_step)
-            self.train_video_recorder.record(time_step.observation)
             episode_step += 1
             self._global_step += 1
 
