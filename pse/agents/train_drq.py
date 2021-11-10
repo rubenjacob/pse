@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 import utils
 from pse.agents.drq import DrQAgent
-from pse.envs import dmc
+from pse.envs import dmc, distracting_dmc
 from pse.utils.logger import Logger
 from pse.data.replay_buffer import make_replay_loader, ReplayBufferStorage
 from pse.utils.video_recorder import VideoRecorder
@@ -25,9 +25,8 @@ def make_agent(obs_spec: specs.Array, action_spec: specs.Array, cfg):
 
 
 class Workspace:
-
     def __init__(self, cfg):
-        self.work_dir = Path.cwd()
+        self.work_dir = cfg.root_dir
         print(f'workspace: {self.work_dir}')
         self.snapshot_dir = self.work_dir / 'snapshots'
         self.snapshot_dir.mkdir(exist_ok=True)
@@ -35,15 +34,23 @@ class Workspace:
         self.cfg = cfg
 
         if self.cfg.use_wandb:
-            wandb.init(config=cfg)
+            wandb.init(config=self.cfg)
 
         self.logger = Logger(self.work_dir, use_tb=self.cfg.use_tb, use_wandb=self.cfg.use_wandb, cfg=self.cfg)
 
-        utils.set_seed_everywhere(cfg.seed)
-        self.device = torch.device(cfg.device)
+        utils.set_seed_everywhere(self.cfg.seed)
+        self.device = torch.device(self.cfg.device)
 
-        self.train_env = dmc.make(self.cfg.task_name, self.cfg.frame_stack, self.cfg.action_repeat, self.cfg.seed)
-        self.eval_env = dmc.make(self.cfg.task_name, self.cfg.frame_stack, self.cfg.action_repeat, self.cfg.seed)
+        self.train_env = distracting_dmc.make(name=self.cfg.task_name,
+                                              frame_stack=self.cfg.frame_stack,
+                                              action_repeat=self.cfg.action_repeat,
+                                              seed=self.cfg.seed,
+                                              num_videos=self.cfg.num_train_videos)
+        self.eval_env = distracting_dmc.make(name=self.cfg.task_name,
+                                             frame_stack=self.cfg.frame_stack,
+                                             action_repeat=self.cfg.action_repeat,
+                                             seed=self.cfg.seed,
+                                             num_videos=30)
 
         self.agent: DrQAgent = make_agent(obs_spec=self.train_env.observation_spec(),
                                           action_spec=self.train_env.action_spec(),
