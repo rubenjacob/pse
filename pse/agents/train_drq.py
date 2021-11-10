@@ -187,14 +187,7 @@ class Workspace:
             torch.save(payload, f)
 
     def load_snapshot(self, step_to_load: Optional[int] = None):
-        if step_to_load is not None:
-            snapshot = self.snapshot_dir / f'snapshot-{step_to_load:07d}.pt'
-        else:
-            snapshot_files = self.snapshot_dir.glob('*.pt')
-            latest_step = max([int(str(file)[9:-3]) for file in snapshot_files])
-            snapshot = self.snapshot_dir / f'snapshot-{latest_step:07d}.pt'
-        with snapshot.open('rb') as f:
-            payload = torch.load(f)
+        payload = utils.load_snapshot_payload(snapshot_dir=self.snapshot_dir, step_to_load=step_to_load)
         for k, v in payload.items():
             self.__dict__[k] = v
 

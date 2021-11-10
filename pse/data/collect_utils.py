@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from pse.agents.drq import DrQAgent
+from pse.agents.utils import load_snapshot_payload
 from pse.data.trajectory import Trajectory
 
 
@@ -22,22 +23,9 @@ class ScriptedPolicy:
         return action
 
 
-def load_policy(saved_model_dir: Path, max_train_step: int, seconds_between_checkpoint_polls: int = 5,
-                num_retries: int = 10) -> Callable[[np.ndarray], np.ndarray]:
-    split = os.path.split(saved_model_dir)
-    if not split[-1]:
-        saved_model_dir = split[0]
-
-    # TODO: Load from latest checkpoint
-    agent = torch.load(saved_model_dir)
-
-    if not issubclass(agent.__class__, DrQAgent):
-        raise ValueError('The loaded agent does not have the correct class!')
-
-    return agent.act
-
-
-def _load_from_checkpoint() -> :
+def load_policy(snapshot_dir: Path) -> Callable[[np.ndarray], np.ndarray]:
+    payload = load_snapshot_payload(snapshot_dir=snapshot_dir)
+    return payload['agent'].act
 
 
 def _get_action(replay: Union[Trajectory, List[Trajectory]]) -> np.ndarray:

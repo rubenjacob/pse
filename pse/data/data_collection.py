@@ -10,17 +10,12 @@ from pse.data.trajectory import Trajectory
 from pse.envs.dmc import make
 
 INIT_DATA_SEED = 42  # Answer to life, the universe and everything
-GAMMA = 0.99
 FLAGS = flags.FLAGS
 
 
-def collect_and_save_data(env_name: str, model_dir: Path, trial_suffix: str, max_episode_len: int, root_dir: Path,
-                          total_episodes: int, episodes_per_seed: int, frame_stack: int, action_repeat: int,
-                          discount: float):
-    saved_model_dir = model_dir / env_name / trial_suffix / 'policies/greedy_policy'
-    max_train_step = 500 * max_episode_len
-    policy = load_policy(saved_model_dir=saved_model_dir, max_train_step=max_train_step)
-    root_dir = root_dir / env_name / trial_suffix
+def collect_and_save_data(env_name: str, snapshot_dir: Path, max_episode_len: int, total_episodes: int,
+                          episodes_per_seed: int, frame_stack: int, action_repeat: int, discount: float):
+    policy = load_policy(snapshot_dir=snapshot_dir)
     num_seeds = total_episodes // episodes_per_seed
     max_steps = (max_episode_len + 1) * episodes_per_seed
 
@@ -30,7 +25,7 @@ def collect_and_save_data(env_name: str, model_dir: Path, trial_suffix: str, max
                                                           frame_stack=frame_stack, action_repeat=action_repeat)
         for episode, paired_episode in zip(episodes, paired_episodes):
             # Write (obs1, obs2, metric) tuples
-            processed_episode_tuple = process_episode(episode, paired_episode, gamma=GAMMA)
+            processed_episode_tuple = process_episode(episode, paired_episode, gamma=discount)
             tf_episode2_observer.write(processed_episode_tuple)
 
 
@@ -94,29 +89,19 @@ def run_env(env: dm_env.Environment, policy: Callable[[np.ndarray], np.ndarray],
 
 
 def main(_):
-    flags.DEFINE_integer('trial_id', 0, 'The trial ID from 0 to num_trials-1.')
     flags.DEFINE_integer('max_episode_len', 1000, 'Number of steps in an episode.')
     flags.DEFINE_string('env_name', 'cartpole-swingup', 'Name of the environment.')
-    flags.DEFINE_string('root_dir', None, 'Path to output trajectories from data collection')
-    flags.DEFINE_integer('seed', None, 'Random Seed for model_dir/data_dir')
     flags.DEFINE_integer('total_episodes', 500, 'Number of steps in an episode.')
     flags.DEFINE_integer('episodes_per_seed', 10, 'Number of episode per random seed.')
-    flags.DEFINE_string('model_dir', None, 'Model directory for reading logs/summaries/checkpoints.')
+    flags.DEFINE_string('snapshot_dir', None, 'Directory where model snapshot is stored.')
     flags.DEFINE_integer('action_repeat', 2, '')
     flags.DEFINE_integer('frame_stack', 3, '')
     flags.DEFINE_float('discount', 0.99, '')
 
-    if FLAGS.seed is not None:
-        trial_suffix = f'{FLAGS.trial_id}/seed_{FLAGS.seed}'
-    else:
-        trial_suffix = str(FLAGS.trial_id)
-
     collect_and_save_data(
         env_name=FLAGS.env_name,
-        model_dir=FLAGS.model_dir,
-        trial_suffix=trial_suffix,
+        snapshot_dir=FLAGS.snapshot_dir,
         max_episode_len=FLAGS.max_episode_len,
-        root_dir=FLAGS.root_dir,
         total_episodes=FLAGS.total_episodes,
         episodes_per_seed=FLAGS.episodes_per_seed,
         action_repeat=FLAGS.action_repeat,

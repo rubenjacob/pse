@@ -2,6 +2,8 @@ import math
 import os
 import random
 import time
+from pathlib import Path
+from typing import Optional, Dict, Any
 
 import numpy as np
 import torch
@@ -84,6 +86,17 @@ def make_dir(*path_parts):
     except OSError:
         pass
     return dir_path
+
+
+def load_snapshot_payload(snapshot_dir: Path, step_to_load: Optional[int] = None) -> Dict[str, Any]:
+    if step_to_load is not None:
+        snapshot = snapshot_dir / f'snapshot-{step_to_load:07d}.pt'
+    else:
+        snapshot_files = snapshot_dir.glob('*.pt')
+        latest_step = max([int(str(file)[9:-3]) for file in snapshot_files])
+        snapshot = snapshot_dir / f'snapshot-{latest_step:07d}.pt'
+    with snapshot.open('rb') as f:
+        return torch.load(f)
 
 
 def tie_weights(src, trg):
