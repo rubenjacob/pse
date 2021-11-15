@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List, Union
 
 import numpy as np
 from distracting_control import suite
@@ -13,6 +13,7 @@ def make(name: str,
          seed: int,
          frame_shape: Tuple[int, int, int] = (84, 84, 3),
          num_videos: int = 2,
+         background_videos: Union[str, List[str]] = 'train',
          dynamic_background: bool = True) -> ExtendedTimeStepWrapper:
     splits = name.split('_')
     task = splits[-1]
@@ -26,14 +27,15 @@ def make(name: str,
     background_kwargs = {
         'num_videos': num_videos,
         'dynamic': dynamic_background,
-        'dataset_videos': 'train'
+        'dataset_videos': background_videos
     }
 
     # make sure reward is not visualized
     env = suite.load(domain,
                      task,
                      render_kwargs=render_kwargs,
-                     background_kwargs=background_kwargs)
+                     background_kwargs=background_kwargs,
+                     visualize_reward=False)
     pixels_key = 'pixels'
     # add wrappers
     env = ActionDTypeWrapper(env, np.float32)

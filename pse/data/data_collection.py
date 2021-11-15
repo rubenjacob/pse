@@ -36,8 +36,10 @@ def collect_and_save_data(env_name: str, snapshot_dir: Path, max_episode_len: in
 def collect_pair_episodes(policy: Callable[[np.ndarray], np.ndarray], env_name: str, frame_stack: int,
                           action_repeat: int, max_steps: Optional[int] = None, random_seed: Optional[int] = None,
                           max_episodes: int = 10) -> Tuple[List[List[ExtendedTimeStep]], List[List[ExtendedTimeStep]]]:
-    env = make(name=env_name, frame_stack=frame_stack, action_repeat=action_repeat, seed=random_seed)
-    env_copy = make(name=env_name, frame_stack=frame_stack, action_repeat=action_repeat, seed=random_seed)
+    env = make(name=env_name, frame_stack=frame_stack, action_repeat=action_repeat, seed=random_seed, num_videos=1,
+               background_videos=['bear'])
+    env_copy = make(name=env_name, frame_stack=frame_stack, action_repeat=action_repeat, seed=random_seed,
+                    num_videos=1, background_videos=['bmx-bumps'])
 
     buffer = run_env(env=env, policy=policy, max_steps=max_steps, max_episodes=max_episodes)
 

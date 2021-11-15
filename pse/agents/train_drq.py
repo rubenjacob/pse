@@ -45,12 +45,15 @@ class Workspace:
                                               frame_stack=self.cfg.frame_stack,
                                               action_repeat=self.cfg.action_repeat,
                                               seed=self.cfg.seed,
-                                              num_videos=self.cfg.num_train_videos)
+                                              num_videos=self.cfg.num_train_videos,
+                                              dynamic_background=self.cfg.dynamic_background)
         self.eval_env = distracting_dmc.make(name=self.cfg.task_name,
                                              frame_stack=self.cfg.frame_stack,
                                              action_repeat=self.cfg.action_repeat,
                                              seed=self.cfg.seed,
-                                             num_videos=30)
+                                             num_videos=self.cfg.num_eval_videos,
+                                             background_videos='validation',
+                                             dynamic_background=self.cfg.dynamic_background)
 
         self.agent: DrQAgent = make_agent(obs_spec=self.train_env.observation_spec(),
                                           action_spec=self.train_env.action_spec(),

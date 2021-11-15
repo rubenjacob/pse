@@ -5,6 +5,8 @@ defaults:
 
 # environment settings
 num_train_videos: 2
+num_eval_videos: 30
+dynamic_background: true
 # task settings
 frame_stack: 4
 action_repeat: 3
