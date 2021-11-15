@@ -1,13 +1,11 @@
-import os
 from pathlib import Path
-from typing import Union, Dict, List, Callable
+from typing import Union, List, Callable, Tuple
 
 import numpy as np
-import torch
 
-from pse.agents.drq import DrQAgent
 from pse.agents.utils import load_snapshot_payload
-from pse.data.trajectory import Trajectory
+
+from pse.envs.extended_time_step import ExtendedTimeStep
 
 
 class ScriptedPolicy:
@@ -16,8 +14,6 @@ class ScriptedPolicy:
         self.action_index = 0
 
     def act(self, obs: np.ndarray) -> np.ndarray:
-        del obs  # unused
-
         action = self.scripted_actions[self.action_index]
         self.action_index += 1
         return action
@@ -28,11 +24,8 @@ def load_policy(snapshot_dir: Path) -> Callable[[np.ndarray], np.ndarray]:
     return payload['agent'].act
 
 
-def _get_action(replay: Union[Trajectory, List[Trajectory]]) -> np.ndarray:
-    if isinstance(replay, list):
-        return np.array([x.action for x in replay])
-    else:
-        return replay.action
+def _get_action(replay: List[ExtendedTimeStep]) -> np.ndarray:
+    return np.array([x.action for x in replay])
 
 
 def _calculate_action_cost_matrix(action1: np.ndarray, action2: np.ndarray) -> np.ndarray:
@@ -61,8 +54,7 @@ def metric_fixed_point_fast(cost_matrix: np.ndarray, gamma: float = 0.99, eps: f
     return d
 
 
-def compute_metric(replay1: Union[Trajectory, List[Trajectory]], replay2: Union[Trajectory, List[Trajectory]],
-                   gamma: float) -> np.ndarray:
+def compute_metric(replay1: List[ExtendedTimeStep], replay2: List[ExtendedTimeStep], gamma: float) -> np.ndarray:
     actions1, actions2 = _get_action(replay=replay1), _get_action(replay=replay2)
     action_cost = _calculate_action_cost_matrix(action1=actions1, action2=actions2)
     return metric_fixed_point_fast(cost_matrix=action_cost, gamma=gamma)
