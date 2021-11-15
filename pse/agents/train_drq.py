@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 import utils
 from pse.agents.drq import DrQAgent
-from pse.envs import dmc, distracting_dmc
+from pse.envs import distracting_dmc
 from pse.utils.logger import Logger
 from pse.data.replay_buffer import make_replay_loader, ReplayBufferStorage
 from pse.utils.video_recorder import VideoRecorder
@@ -193,15 +193,3 @@ class Workspace:
         payload = utils.load_snapshot_payload(snapshot_dir=self.snapshot_dir, step_to_load=step_to_load)
         for k, v in payload.items():
             self.__dict__[k] = v
-
-
-@hydra.main(config_path='configs/config.yaml', strict=True)
-def main(cfg):
-    workspace = Workspace(cfg)
-    if cfg.resume_from_snapshot:
-        workspace.load_snapshot()
-    workspace.train()
-
-
-if __name__ == '__main__':
-    main()
