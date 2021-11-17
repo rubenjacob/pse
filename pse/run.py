@@ -1,18 +1,12 @@
-import os
-
 import hydra
-import numpy as np
-import torch
 
 from pse.agents.train_drq import Workspace
+from pse.agents.utils import set_seed_everywhere
 
 
 @hydra.main(config_path='configs/config.yaml', strict=True)
 def main(cfg):
-    # set random seed everywhere
-    os.environ['PYTHONHASHSEED'] = str(cfg.seed)
-    torch.manual_seed(cfg.seed)
-    np.random.seed(cfg.seed)
+    set_seed_everywhere(seed=cfg.seed)
 
     workspace = Workspace(cfg)
     if cfg.resume_from_snapshot:

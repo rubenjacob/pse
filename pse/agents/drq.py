@@ -1,166 +1,112 @@
-from typing import Dict, Any, Iterator
-
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 
 import utils
-import hydra
 
 
 class Encoder(nn.Module):
-    """Convolutional encoder for image-based observations."""
-    def __init__(self, obs_shape, feature_dim):
+    def __init__(self, obs_shape):
         super().__init__()
 
         assert len(obs_shape) == 3
-        self.num_layers = 4
-        self.num_filters = 32
-        self.output_dim = 35
-        self.output_logits = False
-        self.feature_dim = feature_dim
+        self.repr_dim = 32 * 35 * 35
 
-        self.convs = nn.ModuleList([
-            nn.Conv2d(obs_shape[0], self.num_filters, 3, stride=2),
-            nn.Conv2d(self.num_filters, self.num_filters, 3, stride=1),
-            nn.Conv2d(self.num_filters, self.num_filters, 3, stride=1),
-            nn.Conv2d(self.num_filters, self.num_filters, 3, stride=1)
-        ])
+        self.convnet = nn.Sequential(nn.Conv2d(obs_shape[0], 32, (3,), stride=(2,)),
+                                     nn.ReLU(), nn.Conv2d(32, 32, (3,), stride=(1,)),
+                                     nn.ReLU(), nn.Conv2d(32, 32, (3,), stride=(1,)),
+                                     nn.ReLU(), nn.Conv2d(32, 32, (3,), stride=(1,)),
+                                     nn.ReLU())
 
-        self.head = nn.Sequential(
-            nn.Linear(self.num_filters * 35 * 35, self.feature_dim),
-            nn.LayerNorm(self.feature_dim))
+        self.apply(utils.weight_init)
 
-        self.outputs = dict()
-
-    def forward_conv(self, obs):
-        obs = obs / 255.
-        self.outputs['obs'] = obs
-
-        conv = torch.relu(self.convs[0](obs))
-        self.outputs['conv1'] = conv
-
-        for i in range(1, self.num_layers):
-            conv = torch.relu(self.convs[i](conv))
-            self.outputs['conv%s' % (i + 1)] = conv
-
-        h = conv.view(conv.shape[0], -1)
+    def forward(self, obs):
+        obs = obs / 255.0 - 0.5
+        h = self.convnet(obs)
+        h = h.view(h.shape[0], -1)
         return h
-
-    def forward(self, obs, detach=False):
-        h = self.forward_conv(obs)
-
-        if detach:
-            h = h.detach()
-
-        out = self.head(h)
-        if not self.output_logits:
-            out = torch.tanh(out)
-
-        self.outputs['out'] = out
-
-        return out
-
-    def copy_conv_weights_from(self, source):
-        """Tie convolutional layers"""
-        for i in range(self.num_layers):
-            utils.tie_weights(src=source.convs[i], trg=self.convs[i])
 
 
 class Actor(nn.Module):
-    """torch.distributions implementation of an diagonal Gaussian policy."""
-    def __init__(self, encoder_cfg, action_shape, hidden_dim, hidden_depth, log_std_bounds):
+    def __init__(self, repr_dim, action_shape, feature_dim, hidden_dim):
         super().__init__()
 
-        self.encoder: Encoder = hydra.utils.instantiate(encoder_cfg)
+        self.trunk = nn.Sequential(nn.Linear(repr_dim, feature_dim),
+                                   nn.LayerNorm(feature_dim), nn.Tanh())
 
-        self.log_std_bounds = log_std_bounds
-        self.trunk = utils.mlp(self.encoder.feature_dim, hidden_dim, 2 * action_shape[0], hidden_depth)
+        self.policy = nn.Sequential(nn.Linear(feature_dim, hidden_dim),
+                                    nn.ReLU(inplace=True),
+                                    nn.Linear(hidden_dim, hidden_dim),
+                                    nn.ReLU(inplace=True),
+                                    nn.Linear(hidden_dim, action_shape[0]))
 
-        self.outputs = dict()
         self.apply(utils.weight_init)
 
-    def forward(self, obs, detach_encoder=False):
-        obs = self.encoder(obs, detach=detach_encoder)
+    def forward(self, obs, std):
+        h = self.trunk(obs)
 
-        mu, log_std = self.trunk(obs).chunk(2, dim=-1)
+        mu = self.policy(h)
+        mu = torch.tanh(mu)
+        std = torch.ones_like(mu) * std
 
-        # constrain log_std inside [log_std_min, log_std_max]
-        log_std = torch.tanh(log_std)
-        log_std_min, log_std_max = self.log_std_bounds
-        log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std +
-                                                                     1)
-        std = log_std.exp()
-
-        self.outputs['mu'] = mu
-        self.outputs['std'] = std
-
-        dist = utils.SquashedNormal(mu, std)
+        dist = utils.TruncatedNormal(mu, std)
         return dist
 
 
 class Critic(nn.Module):
-    """Critic network, employs double Q-learning."""
-    def __init__(self, encoder_cfg, action_shape, hidden_dim, hidden_depth):
+    def __init__(self, repr_dim, action_shape, feature_dim, hidden_dim):
         super().__init__()
 
-        self.encoder: Encoder = hydra.utils.instantiate(encoder_cfg)
+        self.trunk = nn.Sequential(nn.Linear(repr_dim, feature_dim),
+                                   nn.LayerNorm(feature_dim), nn.Tanh())
 
-        self.Q1 = utils.mlp(self.encoder.feature_dim + action_shape[0], hidden_dim, 1, hidden_depth)
-        self.Q2 = utils.mlp(self.encoder.feature_dim + action_shape[0], hidden_dim, 1, hidden_depth)
+        self.Q1 = nn.Sequential(
+            nn.Linear(feature_dim + action_shape[0], hidden_dim),
+            nn.ReLU(inplace=True), nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(inplace=True), nn.Linear(hidden_dim, 1))
 
-        self.outputs = dict()
+        self.Q2 = nn.Sequential(
+            nn.Linear(feature_dim + action_shape[0], hidden_dim),
+            nn.ReLU(inplace=True), nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(inplace=True), nn.Linear(hidden_dim, 1))
+
         self.apply(utils.weight_init)
 
-    def forward(self, obs, action, detach_encoder=False):
-        assert obs.size(0) == action.size(0)
-        obs = self.encoder(obs, detach=detach_encoder)
-
-        obs_action = torch.cat([obs, action], dim=-1)
-        q1 = self.Q1(obs_action)
-        q2 = self.Q2(obs_action)
-
-        self.outputs['q1'] = q1
-        self.outputs['q2'] = q2
+    def forward(self, obs, action):
+        h = self.trunk(obs)
+        h_action = torch.cat([h, action], dim=-1)
+        q1 = self.Q1(h_action)
+        q2 = self.Q2(h_action)
 
         return q1, q2
 
 
-class DrQAgent(object):
-    """Data regularized Q: actor-critic method for learning from pixels."""
-    def __init__(self, action_shape, action_range, device, critic_cfg, actor_cfg, discount,
-                 init_temperature, lr, actor_update_frequency, critic_tau, critic_target_update_frequency, batch_size):
-        self.action_range = action_range
+class DrQV2Agent:
+    def __init__(self, obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau, num_expl_steps,
+                 update_every_steps, stddev_schedule, stddev_clip, use_tb):
         self.device = device
-        self.discount = discount
-        self.critic_tau = critic_tau
-        self.actor_update_frequency = actor_update_frequency
-        self.critic_target_update_frequency = critic_target_update_frequency
-        self.batch_size = batch_size
-
+        self.critic_target_tau = critic_target_tau
+        self.update_every_steps = update_every_steps
+        self.use_tb = use_tb
+        self.num_expl_steps = num_expl_steps
+        self.stddev_schedule = stddev_schedule
+        self.stddev_clip = stddev_clip
         self.training = True
 
-        self.actor = hydra.utils.instantiate(actor_cfg).to(self.device)
+        # models
+        self.encoder = Encoder(obs_shape).to(device)
+        self.actor = Actor(self.encoder.repr_dim, action_shape, feature_dim, hidden_dim).to(device)
 
-        self.critic = hydra.utils.instantiate(critic_cfg).to(self.device)
-        self.critic_target = hydra.utils.instantiate(critic_cfg).to(self.device)
+        self.critic = Critic(self.encoder.repr_dim, action_shape, feature_dim, hidden_dim).to(device)
+        self.critic_target = Critic(self.encoder.repr_dim, action_shape, feature_dim, hidden_dim).to(device)
         self.critic_target.load_state_dict(self.critic.state_dict())
 
-        # tie conv layers between actor and critic
-        self.actor.encoder.copy_conv_weights_from(self.critic.encoder)
-
-        self.log_alpha = torch.tensor(np.log(init_temperature)).to(device)
-        self.log_alpha.requires_grad = True
-        # set target entropy to -|A|
-        self.target_entropy = -action_shape[0]
-
         # optimizers
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=lr)
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=lr)
-        self.log_alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=lr)
+        self.encoder_opt = torch.optim.Adam(self.encoder.parameters(), lr=lr)
+        self.actor_opt = torch.optim.Adam(self.actor.parameters(), lr=lr)
+        self.critic_opt = torch.optim.Adam(self.critic.parameters(), lr=lr)
 
+        # data augmentation
         self.aug = utils.RandomShiftsAug(pad=4)
 
         self.train()
@@ -168,118 +114,103 @@ class DrQAgent(object):
 
     def train(self, training=True):
         self.training = training
+        self.encoder.train(training)
         self.actor.train(training)
         self.critic.train(training)
 
-    @property
-    def alpha(self):
-        return self.log_alpha.exp()
-
-    def act(self, obs, eval_mode=True):
+    def act(self, obs, step, eval_mode):
         obs = torch.as_tensor(obs, device=self.device)
-        obs = obs.unsqueeze(0)
-        dist = self.actor(obs)
-
+        obs = self.encoder(obs.unsqueeze(0))
+        stddev = utils.schedule(self.stddev_schedule, step)
+        dist = self.actor(obs, stddev)
         if eval_mode:
             action = dist.mean
         else:
-            action = dist.sample()
+            action = dist.sample(clip=None)
+            if step < self.num_expl_steps:
+                action.uniform_(-1.0, 1.0)
+        return action.cpu().numpy()[0]
 
-        action = action.clamp(*self.action_range)
-        assert action.ndim == 2 and action.shape[0] == 1
-        return utils.to_np(action[0])
-
-    def update_critic(self, obs, obs_aug, action, reward, next_obs, next_obs_aug):
-        metrics: Dict[str, Any] = dict()
+    def update_critic(self, obs, action, reward, discount, next_obs, step):
+        metrics = dict()
 
         with torch.no_grad():
-            dist = self.actor(next_obs)
-            next_action = dist.rsample()
-            log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
-            target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
-            target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob
-            target_Q = reward + self.discount * target_V
+            stddev = utils.schedule(self.stddev_schedule, step)
+            dist = self.actor(next_obs, stddev)
+            next_action = dist.sample(clip=self.stddev_clip)
+            target_q1, target_q2 = self.critic_target(next_obs, next_action)
+            target_v = torch.min(target_q1, target_q2)
+            target_q = reward + (discount * target_v)
 
-            dist_aug = self.actor(next_obs_aug)
-            next_action_aug = dist_aug.rsample()
-            log_prob_aug = dist_aug.log_prob(next_action_aug).sum(-1, keepdim=True)
-            target_Q1, target_Q2 = self.critic_target(next_obs_aug, next_action_aug)
-            target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach() * log_prob_aug
-            target_Q_aug = reward + self.discount * target_V
+        q1, q2 = self.critic(obs, action)
+        critic_loss = F.mse_loss(q1, target_q) + F.mse_loss(q2, target_q)
 
-            target_Q = (target_Q + target_Q_aug) / 2
+        if self.use_tb:
+            metrics['critic_target_q'] = target_q.mean().item()
+            metrics['critic_q1'] = q1.mean().item()
+            metrics['critic_q2'] = q2.mean().item()
+            metrics['critic_loss'] = critic_loss.item()
 
-        # get current Q estimates
-        current_Q1, current_Q2 = self.critic(obs, action)
-        critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
-
-        Q1_aug, Q2_aug = self.critic(obs_aug, action)
-
-        critic_loss += F.mse_loss(Q1_aug, target_Q) + F.mse_loss(Q2_aug, target_Q)
-
-        metrics['critic_target_q'] = target_Q.mean().item()
-        metrics['critic_q1'] = current_Q1.mean().item()
-        metrics['critic_q2'] = current_Q2.mean().item()
-        metrics['critic_loss'] = critic_loss.item()
-
-        # Optimize the critic
-        self.critic_optimizer.zero_grad()
+        # optimize encoder and critic
+        self.encoder_opt.zero_grad(set_to_none=True)
+        self.critic_opt.zero_grad(set_to_none=True)
         critic_loss.backward()
-        self.critic_optimizer.step()
+        self.critic_opt.step()
+        self.encoder_opt.step()
 
         return metrics
 
-    def update_actor_and_alpha(self, obs):
-        metrics: Dict[str, Any] = dict()
+    def update_actor(self, obs, step):
+        metrics = dict()
 
-        # detach conv filters, so we don't update them with the actor loss
-        dist = self.actor(obs, detach_encoder=True)
-        action = dist.rsample()
+        stddev = utils.schedule(self.stddev_schedule, step)
+        dist = self.actor(obs, stddev)
+        action = dist.sample(clip=self.stddev_clip)
         log_prob = dist.log_prob(action).sum(-1, keepdim=True)
-        # detach conv filters, so we don't update them with the actor loss
-        actor_Q1, actor_Q2 = self.critic(obs, action, detach_encoder=True)
+        q1, q2 = self.critic(obs, action)
+        q = torch.min(q1, q2)
 
-        actor_Q = torch.min(actor_Q1, actor_Q2)
+        actor_loss = -q.mean()
 
-        actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
-
-        metrics['actor_loss'] = actor_loss.item()
-        metrics['actor_logprob'] = log_prob.mean().item()
-        metrics['actor_ent'] = dist.entropy().sum(dim=-1).mean().item()
-        metrics['target_ent'] = self.target_entropy
-
-        # optimize the actor
-        self.actor_optimizer.zero_grad()
+        # optimize actor
+        self.actor_opt.zero_grad(set_to_none=True)
         actor_loss.backward()
-        self.actor_optimizer.step()
+        self.actor_opt.step()
 
-        self.log_alpha_optimizer.zero_grad()
-        alpha_loss = (self.alpha * (-log_prob - self.target_entropy).detach()).mean()
-
-        metrics['alpha_loss'] = alpha_loss.item()
-        metrics['alpha_value'] = self.alpha
-
-        alpha_loss.backward()
-        self.log_alpha_optimizer.step()
+        if self.use_tb:
+            metrics['actor_loss'] = actor_loss.item()
+            metrics['actor_logprob'] = log_prob.mean().item()
+            metrics['actor_ent'] = dist.entropy().sum(dim=-1).mean().item()
 
         return metrics
 
-    def update(self, replay_iter: Iterator[DataLoader], step):
-        metrics: Dict[str, Any] = dict()
+    def update(self, replay_iter, step):
+        metrics = dict()
+
+        if step % self.update_every_steps != 0:
+            return metrics
 
         batch = next(replay_iter)
         obs, action, reward, discount, next_obs = utils.to_torch(batch, self.device)
 
-        obs_aug = self.aug(obs.float())
-        next_obs_aug = self.aug(next_obs.float())
-        metrics['train/batch_reward'] = reward.mean().item()
+        # augment
+        obs = self.aug(obs.float())
+        next_obs = self.aug(next_obs.float())
+        # encode
+        obs = self.encoder(obs)
+        with torch.no_grad():
+            next_obs = self.encoder(next_obs)
 
-        metrics.update(self.update_critic(obs, obs_aug, action, reward, next_obs, next_obs_aug))
+        if self.use_tb:
+            metrics['batch_reward'] = reward.mean().item()
 
-        if step % self.actor_update_frequency == 0:
-            metrics.update(self.update_actor_and_alpha(obs))
+        # update critic
+        metrics.update(self.update_critic(obs, action, reward, discount, next_obs, step))
 
-        if step % self.critic_target_update_frequency == 0:
-            utils.soft_update_params(self.critic, self.critic_target, self.critic_tau)
+        # update actor
+        metrics.update(self.update_actor(obs.detach(), step))
+
+        # update critic target
+        utils.soft_update_params(self.critic, self.critic_target, self.critic_target_tau)
 
         return metrics

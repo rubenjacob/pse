@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from pse.agents import utils
-from pse.agents.drq import DrQAgent
+from pse.agents.drq import DrQV2Agent
 from pse.utils.helper_functions import torch_gather_nd, torch_scatter_nd_update, EPS, sample_indices, cosine_similarity
 
 
@@ -30,16 +30,20 @@ def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor,
     return torch.mean(neg_logits1 - pos_logits1)
 
 
-class PSEDrQAgent(DrQAgent):
-    def __init__(self, action_shape, action_range, device, critic_cfg, actor_cfg, discount,
-                 init_temperature, lr, actor_update_frequency, critic_tau, critic_target_update_frequency, batch_size,
-                 contrastive_loss_weight, contrastive_loss_temperature):
-        super().__init__(action_shape, action_range, device, critic_cfg, actor_cfg, discount,
-                         init_temperature, lr, actor_update_frequency, critic_tau, critic_target_update_frequency,
-                         batch_size)
+class PSEDrQAgent(DrQV2Agent):
+    def __init__(self, obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau, num_expl_steps,
+                 update_every_steps, stddev_schedule, stddev_clip, use_tb, contrastive_loss_weight=1.0,
+                 contrastive_loss_temperature=0.1):
+        super().__init__(obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau,
+                         num_expl_steps, update_every_steps, stddev_schedule, stddev_clip, use_tb)
         self._contrastive_optimizer = torch.optim.Adam(self.actor.parameters(), lr=lr)
         self._contrastive_loss_weight = contrastive_loss_weight
         self._contrastive_loss_temperature = contrastive_loss_temperature
+
+    def _encode_obs(self, obs: torch.Tensor) -> torch.Tensor:
+        obs = torch.as_tensor(obs, device=self.device)
+        encoded = self.encoder(obs.unsqueeze(0))
+        return self.actor.trunk(encoded)
 
     def contrastive_metric_loss(self, obs1: torch.Tensor, obs2: torch.Tensor, metric_vals: torch.Tensor,
                                 use_coupling_weights: bool = False,
@@ -53,8 +57,8 @@ class PSEDrQAgent(DrQAgent):
         obs1 = torch.gather(obs1, index=indices, dim=0)
         metric_vals = torch.gather(metric_vals, index=indices, dim=0)
 
-        representation_1 = self.actor(obs1)
-        representation_2 = self.actor(obs2)
+        representation_1 = self._encode_obs(obs1)
+        representation_2 = self._encode_obs(obs2)
         similarity_matrix = cosine_similarity(representation_1, representation_2)
         alignment_loss = contrastive_loss(similarity_matrix=similarity_matrix,
                                           metric_vals=metric_vals,
@@ -68,22 +72,7 @@ class PSEDrQAgent(DrQAgent):
             return alignment_loss
 
     def update(self, replay_iter: Iterator[DataLoader], step: int):
-        metrics: Dict[str, Any] = dict()
-
-        batch = next(replay_iter)
-        obs, action, reward, discount, next_obs = utils.to_torch(batch, self.device)
-
-        obs_aug = self.aug(obs.float())
-        next_obs_aug = self.aug(next_obs.float())
-        metrics['train/batch_reward'] = reward.mean().item()
-
-        metrics.update(self.update_critic(obs, obs_aug, action, reward, next_obs, next_obs_aug))
-
-        if step % self.actor_update_frequency == 0:
-            metrics.update(self.update_actor_and_alpha(obs))
-
-        if step % self.critic_target_update_frequency == 0:
-            utils.soft_update_params(self.critic, self.critic_target, self.critic_tau)
+        metrics: Dict[str, Any] = super(PSEDrQAgent, self).update(replay_iter, step)
 
         self._contrastive_optimizer.zero_grad()
         contr_loss = self._contrastive_loss_weight * self.contrastive_metric_loss(obs1, obs2, metric_vals)
@@ -92,3 +81,5 @@ class PSEDrQAgent(DrQAgent):
 
         contr_loss.backward()
         self._contrastive_optimizer.step()
+
+        return metrics

@@ -1,7 +1,6 @@
 defaults:
   - _self_
   - task@_global_: ball_in_cup_catch
-  - override hydra/launcher: submitit_local
 
 # environment settings
 num_train_videos: 2
@@ -36,14 +35,11 @@ experiment: exp
 # agent
 lr: 1e-4
 feature_dim: 50
-# pse
-contrastive_loss_weight: 1.0
-contrastive_loss_temperature: 0.1
 # directories
 root_dir: $HOME/pse/results/${experiment}/${task_name}
 
 agent:
-  _target_: pse.agents.drq.DrQAgent
+  _target_: pse.agents.drq.DrQV2Agent
   obs_shape: ??? # to be specified later
   action_shape: ??? # to be specified later
   device: ${device}
@@ -56,20 +52,3 @@ agent:
   feature_dim: ${feature_dim}
   stddev_schedule: ${stddev_schedule}
   stddev_clip: 0.3
-  contrastive_loss_weight: ${contrastive_loss_weight}
-  contrastive_loss_temperature: ${contrastive_loss_temperature}
-
-hydra:
-  run:
-    dir: ./exp_local/${now:%Y.%m.%d}/${now:%H%M%S}_${hydra.job.override_dirname}
-  sweep:
-    dir: ./exp/${now:%Y.%m.%d}/${now:%H%M}_${agent_cfg.experiment}
-    subdir: ${hydra.job.num}
-  launcher:
-    timeout_min: 4300
-    cpus_per_task: 10
-    gpus_per_node: 1
-    tasks_per_node: 1
-    mem_gb: 160
-    nodes: 1
-    submitit_folder: ./exp/${now:%Y.%m.%d}/${now:%H%M%S}_${agent_cfg.experiment}/.slurm

@@ -85,7 +85,7 @@ def run_env(env: ExtendedTimeStepWrapper, policy: Callable[[np.ndarray], np.ndar
         num_steps += 1
 
         if extended_time_step.last():
-            obs = env.reset()
+            obs = env.reset().observation
             num_episodes += 1
 
     return replay_buffer

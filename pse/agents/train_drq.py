@@ -168,7 +168,7 @@ class Workspace:
 
             # sample action
             with torch.no_grad(), utils.eval_mode(self.agent):
-                action = self.agent.act(obs=time_step.observation, eval_mode=False)
+                action = self.agent.act(obs=time_step.observation, step=self.global_step, eval_mode=False)
 
             # try to update the agent
             if not seed_until_step(step=self.global_step):

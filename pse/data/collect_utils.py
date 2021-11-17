@@ -1,3 +1,4 @@
+from functools import partial
 from pathlib import Path
 from typing import Union, List, Callable, Tuple
 
@@ -21,7 +22,7 @@ class ScriptedPolicy:
 
 def load_policy(snapshot_dir: Path) -> Callable[[np.ndarray], np.ndarray]:
     payload = load_snapshot_payload(snapshot_dir=snapshot_dir)
-    return payload['agent'].act
+    return partial(payload['agent'].act, step=100000, eval_mode=True)  # step doesn't matter in eval mode
 
 
 def _get_action(replay: List[ExtendedTimeStep]) -> np.ndarray:

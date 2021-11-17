@@ -4,15 +4,15 @@ import random
 import traceback
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Callable, Dict, Iterable, Tuple
+from typing import List, Dict, Iterable, Tuple, Generator
 
 import numpy as np
 import torch
-from dm_env import specs, TimeStep
+from dm_env import specs
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataset import T_co
 
-from pse.envs.dmc import ExtendedTimeStep
+from pse.envs.extended_time_step import ExtendedTimeStep
 
 Episode = Dict[str, np.ndarray]
 
@@ -165,7 +165,7 @@ class ReplayBuffer(IterableDataset):
             discount *= episode['discount'][idx + i] * self._discount
         return obs, action, reward, discount, next_obs
 
-    def __iter__(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def __iter__(self) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray], None, None]:
         while True:
             yield self._sample()
 
