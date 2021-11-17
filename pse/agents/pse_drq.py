@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Dict, Any, Iterator
+from typing import Union, Tuple, Dict, Any, Iterator, Optional
 
 import numpy as np
 import torch
@@ -71,8 +71,14 @@ class PSEDrQAgent(DrQV2Agent):
         else:
             return alignment_loss
 
-    def update(self, replay_iter: Iterator[DataLoader], step: int):
+    def update(self, replay_iter: Iterator[DataLoader], step: int,
+               metric_data_iter: Optional[Iterator[DataLoader]] = None):
         metrics: Dict[str, Any] = super(PSEDrQAgent, self).update(replay_iter, step)
+
+        assert metric_data_iter is not None
+        episode = next(metric_data_iter)
+        obs1, obs2, metric_vals = utils.to_torch(episode, self.device)
+        obs1, obs2 = self.aug(obs1), self.aug(obs2)
 
         self._contrastive_optimizer.zero_grad()
         contr_loss = self._contrastive_loss_weight * self.contrastive_metric_loss(obs1, obs2, metric_vals)

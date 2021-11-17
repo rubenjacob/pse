@@ -9,7 +9,8 @@ from dm_env import specs
 from torch.utils.data import DataLoader
 
 import utils
-from pse.agents.drq import DrQAgent
+from pse.agents.drq import DrQV2Agent
+from pse.data.metric_data_buffer import make_metric_data_loader
 from pse.envs import distracting_dmc
 from pse.utils.logger import Logger
 from pse.data.replay_buffer import make_replay_loader, ReplayBufferStorage
@@ -55,9 +56,9 @@ class Workspace:
                                              background_videos='validation',
                                              dynamic_background=self.cfg.dynamic_background)
 
-        self.agent: DrQAgent = make_agent(obs_spec=self.train_env.observation_spec(),
-                                          action_spec=self.train_env.action_spec(),
-                                          cfg=self.cfg.agent)
+        self.agent: DrQV2Agent = make_agent(obs_spec=self.train_env.observation_spec(),
+                                            action_spec=self.train_env.action_spec(),
+                                            cfg=self.cfg.agent)
 
         # create replay buffer
         data_specs = (self.train_env.observation_spec(),
@@ -75,6 +76,14 @@ class Workspace:
                                                 nstep=self.cfg.nstep,
                                                 discount=self.cfg.discount)
         self._replay_iter = None
+
+        metric_data_dir = self.work_dir / 'metric_data'
+        if metric_data_dir.exists():
+            self.metric_data_loader = make_metric_data_loader(data_dir=metric_data_dir,
+                                                              num_workers=self.cfg.replay_buffer_num_workers)
+        else:
+            self.metric_data_loader = None
+        self._metric_data_iter = None
 
         self.video_recorder = VideoRecorder(root_dir=self.work_dir if self.cfg.save_video else None, log_to_wandb=True)
 
@@ -100,6 +109,14 @@ class Workspace:
             self._replay_iter = iter(self.replay_loader)
         return self._replay_iter
 
+    @property
+    def metric_data_iter(self) -> Optional[Iterator[DataLoader]]:
+        if self.metric_data_loader is None:
+            return None
+        if self._metric_data_iter is None:
+            self._metric_data_iter = iter(self.metric_data_loader)
+        return self._metric_data_iter
+
     def eval(self):
         step, episode, total_reward = 0, 0, 0
         eval_until_episode = utils.Until(until=self.cfg.num_eval_episodes)
@@ -109,7 +126,8 @@ class Workspace:
             self.video_recorder.init(env=self.eval_env, enabled=(episode == 0))
             while not time_step.last():
                 with torch.no_grad(), utils.eval_mode(self.agent):
-                    action = self.agent.act(obs=time_step.observation, eval_mode=True)
+                    # step doesn't matter in eval mode, so just pass any value
+                    action = self.agent.act(obs=time_step.observation, step=10000, eval_mode=True)
                 time_step = self.eval_env.step(action=action)
                 self.video_recorder.record(env=self.eval_env)
                 total_reward += time_step.reward
@@ -172,7 +190,8 @@ class Workspace:
 
             # try to update the agent
             if not seed_until_step(step=self.global_step):
-                metrics = self.agent.update(replay_iter=self.replay_iter, step=self.global_step)
+                metrics = self.agent.update(replay_iter=self.replay_iter, step=self.global_step,
+                                            metric_data_iter=self.metric_data_iter)
                 self.logger.log_metrics(metrics, self.global_frame, train_or_eval='train')
 
             # take env step

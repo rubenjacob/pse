@@ -1,6 +1,9 @@
+from typing import Optional, Iterator
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
 
 import utils
 
@@ -184,7 +187,7 @@ class DrQV2Agent:
 
         return metrics
 
-    def update(self, replay_iter, step):
+    def update(self, replay_iter, step, metric_data_iter: Optional[Iterator[DataLoader]] = None):
         metrics = dict()
 
         if step % self.update_every_steps != 0:

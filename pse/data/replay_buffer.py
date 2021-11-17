@@ -4,7 +4,7 @@ import random
 import traceback
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Dict, Iterable, Tuple, Generator
+from typing import List, Dict, Iterable, Tuple, Generator, Iterator
 
 import numpy as np
 import torch
@@ -165,7 +165,7 @@ class ReplayBuffer(IterableDataset):
             discount *= episode['discount'][idx + i] * self._discount
         return obs, action, reward, discount, next_obs
 
-    def __iter__(self) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray], None, None]:
+    def __iter__(self) -> Iterator[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
         while True:
             yield self._sample()
 
@@ -177,7 +177,7 @@ def _worker_init_fn(worker_id: int):
 
 
 def make_replay_loader(replay_dir: Path, max_size: int, batch_size: int, num_workers: int, save_snapshot: bool,
-                       nstep: int, discount: float):
+                       nstep: int, discount: float) -> torch.utils.data.DataLoader:
     max_size_per_worker = max_size // max(1, num_workers)
 
     iterable = ReplayBuffer(replay_dir,
@@ -188,7 +188,7 @@ def make_replay_loader(replay_dir: Path, max_size: int, batch_size: int, num_wor
                             fetch_every=1000,
                             save_snapshot=save_snapshot)
 
-    loader = torch.utils.data.DataLoader(iterable,
+    loader = torch.utils.data.DataLoader(dataset=iterable,
                                          batch_size=batch_size,
                                          num_workers=num_workers,
                                          pin_memory=True,
