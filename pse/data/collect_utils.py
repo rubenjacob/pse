@@ -31,7 +31,7 @@ def _get_action(replay: List[ExtendedTimeStep]) -> np.ndarray:
 
 def _calculate_action_cost_matrix(action1: np.ndarray, action2: np.ndarray) -> np.ndarray:
     diff = np.expand_dims(action1, axis=1) - np.expand_dims(action2, axis=0)
-    return np.cast(np.mean(np.abs(diff), axis=-1), dtype=np.float32)
+    return np.mean(np.abs(diff), axis=-1)
 
 
 def metric_fixed_point_fast(cost_matrix: np.ndarray, gamma: float = 0.99, eps: float = 1e-7) -> np.ndarray:

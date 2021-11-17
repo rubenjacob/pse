@@ -1,3 +1,4 @@
+import os.path
 from typing import Tuple, List, Union
 
 import numpy as np
@@ -18,21 +19,23 @@ def make(name: str,
     splits = name.split('_')
     task = splits[-1]
     domain = '_'.join(splits[:-1])
+    task_kwargs = {'random': seed}
     render_kwargs = {
         'width': frame_shape[0],
         'height': frame_shape[1],
-        'random': seed,
         'camera_id': 2 if domain == 'quadruped' else 0
     }
     background_kwargs = {
         'num_videos': num_videos,
         'dynamic': dynamic_background,
+        'dataset_path': os.path.join(os.environ.get('HOME'), 'DAVIS/JPEGImages/480p'),
         'dataset_videos': background_videos
     }
 
     # make sure reward is not visualized
     env = suite.load(domain,
                      task,
+                     task_kwargs=task_kwargs,
                      render_kwargs=render_kwargs,
                      background_kwargs=background_kwargs,
                      visualize_reward=False)

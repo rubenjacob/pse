@@ -17,20 +17,18 @@ def collect_and_save_data(env_name: str, snapshot_dir: Path, max_episode_len: in
                           episodes_per_seed: int, frame_stack: int, action_repeat: int, discount: float):
     policy = load_policy(snapshot_dir=snapshot_dir)
     num_seeds = total_episodes // episodes_per_seed
-    max_steps = (max_episode_len + 1) * episodes_per_seed
+    max_steps = max_episode_len * episodes_per_seed
     episodes_dir = snapshot_dir.parent / 'episodes'
     episodes_dir.mkdir(exist_ok=True)
 
-    processed_episodes = list()
     for seed in range(INIT_DATA_SEED, INIT_DATA_SEED + num_seeds):
         episodes, paired_episodes = collect_pair_episodes(policy=policy, env_name=env_name, random_seed=seed,
                                                           max_steps=max_steps, max_episodes=episodes_per_seed,
                                                           frame_stack=frame_stack, action_repeat=action_repeat)
         for episode, paired_episode in zip(episodes, paired_episodes):
             # Write (obs1, obs2, metric) tuples
-            processed_episodes.append(process_episode(episode, paired_episode, gamma=discount))
-
-    save_processed_episodes(processed_episodes, episodes_dir)
+            processed_episode = process_episode(episode, paired_episode, gamma=discount)
+            save_processed_episode(processed_episode, episodes_dir)
 
 
 def collect_pair_episodes(policy: Callable[[np.ndarray], np.ndarray], env_name: str, frame_stack: int,
@@ -56,8 +54,8 @@ def collect_pair_episodes(policy: Callable[[np.ndarray], np.ndarray], env_name: 
 def get_complete_episodes(replay_buffer: List[ExtendedTimeStep], num_episodes: int = 2) -> List[List[ExtendedTimeStep]]:
     terminal_steps = [int(x.step_type) for x in replay_buffer]
     episode_boundaries = np.where(np.array(terminal_steps) == 2)[0]
-    episode_boundaries = np.append(episode_boundaries[::-1], [-2])[::-1]  # prepend -2
-    return [replay_buffer[episode_boundaries[i] + 2: episode_boundaries[i + 1] + 1] for i in range(num_episodes)]
+    episode_boundaries = np.append(episode_boundaries[::-1], [-1])[::-1]  # prepend -1
+    return [replay_buffer[episode_boundaries[i] + 1: episode_boundaries[i + 1] + 1] for i in range(num_episodes)]
 
 
 def _stack_observations(episode: List[ExtendedTimeStep]) -> np.ndarray:
@@ -76,25 +74,26 @@ def run_env(env: ExtendedTimeStepWrapper, policy: Callable[[np.ndarray], np.ndar
     replay_buffer: List[ExtendedTimeStep] = list()
     num_steps = 0
     num_episodes = 0
-    obs = env.reset().observation
+    extended_time_step = env.reset()
 
     while num_steps < max_steps and num_episodes < max_episodes:
-        action = policy(obs)
-        extended_time_step = env.step(action=action)
         replay_buffer.append(extended_time_step)
+        action = policy(extended_time_step.observation)
+        extended_time_step = env.step(action=action)
         num_steps += 1
 
         if extended_time_step.last():
-            obs = env.reset().observation
+            replay_buffer.append(extended_time_step)
+            extended_time_step = env.reset()
             num_episodes += 1
 
     return replay_buffer
 
 
-def save_processed_episodes(processed_episodes: List[Tuple[np.ndarray, np.ndarray, np.ndarray]], episodes_dir: Path):
-    for i, episode in enumerate(processed_episodes):
-        pth = episodes_dir / f"episode{i: 05d}.npz"
-        np.savez(pth, obs1=episode[0], obs2=episode[1], metric=episode[2])
+def save_processed_episode(processed_episode: Tuple[np.ndarray, np.ndarray, np.ndarray], episodes_dir: Path):
+    episode_number = len(list(episodes_dir.glob('*.npz')))
+    pth = episodes_dir / f"episode{episode_number: 05d}.npz"
+    np.savez(pth, obs1=processed_episode[0], obs2=processed_episode[1], metric_vals=processed_episode[2])
 
 
 def main(_):
