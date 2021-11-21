@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 import utils
 from pse.agents.drq import DrQV2Agent
-from pse.data.metric_data_buffer import make_metric_data_loader
+from pse.data.metric_dataset import make_metric_data_loader
 from pse.envs import distracting_dmc
 from pse.utils.logger import Logger
 from pse.data.replay_buffer import make_replay_loader, ReplayBufferStorage
@@ -47,6 +47,7 @@ class Workspace:
                                               action_repeat=self.cfg.action_repeat,
                                               seed=self.cfg.seed,
                                               num_videos=self.cfg.num_train_videos,
+                                              background_videos=self.cfg.train_background_videos,
                                               dynamic_background=self.cfg.dynamic_background)
         self.eval_env = distracting_dmc.make(name=self.cfg.task_name,
                                              frame_stack=self.cfg.frame_stack,

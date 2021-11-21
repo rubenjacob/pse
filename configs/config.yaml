@@ -5,6 +5,7 @@ defaults:
 # environment settings
 num_train_videos: 2
 num_eval_videos: 30
+train_background_videos: ['bear']  # either 'training' or a list of valid video names from DAVIS17_TRAINING_VIDEOS
 dynamic_background: true
 # task settings
 frame_stack: 4
@@ -31,7 +32,7 @@ save_video: true
 use_tb: false
 use_wandb: true
 # experiment
-experiment: exp
+experiment: debug_baseline_experiment
 # agent
 lr: 1e-4
 feature_dim: 50

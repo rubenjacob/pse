@@ -31,4 +31,4 @@ class MetricDataset(IterableDataset):
 
 def make_metric_data_loader(data_dir: Path, num_workers: int) -> torch.utils.data.DataLoader:
     dataset = MetricDataset(data_dir=data_dir)
-    return torch.utils.data.DataLoader(dataset=dataset, num_workers=num_workers)
+    return torch.utils.data.DataLoader(dataset=dataset, num_workers=num_workers, prefetch_factor=10)

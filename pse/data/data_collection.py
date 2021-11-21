@@ -18,7 +18,7 @@ def collect_and_save_data(env_name: str, snapshot_dir: Path, max_episode_len: in
     policy = load_policy(snapshot_dir=snapshot_dir)
     num_seeds = total_episodes // episodes_per_seed
     max_steps = max_episode_len * episodes_per_seed
-    episodes_dir = snapshot_dir.parent / 'episodes'
+    episodes_dir = snapshot_dir.parent / 'metric_data'
     episodes_dir.mkdir(exist_ok=True)
 
     for seed in range(INIT_DATA_SEED, INIT_DATA_SEED + num_seeds):

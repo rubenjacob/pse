@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pse.data.metric_data_buffer import MetricDataset
+from pse.data.metric_dataset import MetricDataset
 
 
 def test_data_loading():
