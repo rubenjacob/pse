@@ -1,0 +1,11 @@
+defaults:
+  - config
+
+num_seed_frames: 4
+num_train_frames: 8
+save_snapshot: false
+batch_size: 2
+device: cpu
+use_wandb: false
+experiment: test_experiment
+root_dir: $HOME/pse/debug_results/
