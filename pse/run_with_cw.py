@@ -19,9 +19,4 @@ class ClusterWorkExperiment(experiment.AbstractExperiment):
 if __name__ == "__main__":
     # expects the class not an instance!
     cw = cluster_work.ClusterWork(ClusterWorkExperiment)
-
-    # Optional: Add loggers
-    cw.add_logger(...)
-
-    # RUN!
     cw.run()
