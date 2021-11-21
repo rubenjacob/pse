@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import wandb
 from torch.utils.data import DataLoader
 
-import utils
+from pse.agents import utils
 
 
 class Encoder(nn.Module):
