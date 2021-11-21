@@ -1,0 +1,17 @@
+---
+name: "DEFAULT"
+path: "${HOME}/pse/results/"
+repetitions: 1
+
+---
+name: "SLURM"
+job-name: "ruben_pse_experiment"
+partition: "gpu_8"
+num_parallel_jobs: 1
+ntasks: 1
+cpus-per-task: 4
+time: 12:00:00
+sbatch_args:
+  gres: "gpu:1"
+sh_lines:
+  - "conda activate pse_env"
