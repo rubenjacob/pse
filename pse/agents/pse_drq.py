@@ -32,10 +32,10 @@ def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor,
 
 class PSEDrQAgent(DrQV2Agent):
     def __init__(self, obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau, num_expl_steps,
-                 update_every_steps, stddev_schedule, stddev_clip, use_tb, contrastive_loss_weight=1.0,
+                 update_every_steps, stddev_schedule, stddev_clip, use_tb, use_wandb, contrastive_loss_weight=1.0,
                  contrastive_loss_temperature=0.1):
         super().__init__(obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau,
-                         num_expl_steps, update_every_steps, stddev_schedule, stddev_clip, use_tb)
+                         num_expl_steps, update_every_steps, stddev_schedule, stddev_clip, use_tb, use_wandb)
         self._contrastive_optimizer = torch.optim.Adam(self.actor.parameters(), lr=lr)
         self._contrastive_loss_weight = contrastive_loss_weight
         self._contrastive_loss_temperature = contrastive_loss_temperature

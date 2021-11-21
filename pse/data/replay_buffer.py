@@ -10,7 +10,6 @@ import numpy as np
 import torch
 from dm_env import specs
 from torch.utils.data import IterableDataset
-from torch.utils.data.dataset import T_co
 
 from pse.envs.extended_time_step import ExtendedTimeStep
 
@@ -82,7 +81,7 @@ class ReplayBufferStorage:
 
 
 class ReplayBuffer(IterableDataset):
-    def __getitem__(self, index) -> T_co:
+    def __getitem__(self, index):
         raise NotImplementedError
 
     def __init__(self, replay_dir: Path, max_size: int, num_workers: int, nstep: int, discount: float, fetch_every: int,
