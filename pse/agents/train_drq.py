@@ -8,7 +8,7 @@ import wandb
 from dm_env import specs
 from torch.utils.data import DataLoader
 
-import utils
+from pse.agents import utils
 from pse.agents.drq import DrQV2Agent
 from pse.data.metric_dataset import make_metric_data_loader
 from pse.envs import distracting_dmc
