@@ -3,6 +3,7 @@ from typing import Optional, Iterator
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import wandb
 from torch.utils.data import DataLoader
 
 import utils
@@ -86,7 +87,7 @@ class Critic(nn.Module):
 
 class DrQV2Agent:
     def __init__(self, obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau, num_expl_steps,
-                 update_every_steps, stddev_schedule, stddev_clip, use_tb):
+                 update_every_steps, stddev_schedule, stddev_clip, use_tb, use_wandb):
         self.device = device
         self.critic_target_tau = critic_target_tau
         self.update_every_steps = update_every_steps
@@ -103,6 +104,9 @@ class DrQV2Agent:
         self.critic = Critic(self.encoder.repr_dim, action_shape, feature_dim, hidden_dim).to(device)
         self.critic_target = Critic(self.encoder.repr_dim, action_shape, feature_dim, hidden_dim).to(device)
         self.critic_target.load_state_dict(self.critic.state_dict())
+
+        if use_wandb:
+            wandb.watch((self.encoder, self.actor, self.critic, self.critic_target))
 
         # optimizers
         self.encoder_opt = torch.optim.Adam(self.encoder.parameters(), lr=lr)
