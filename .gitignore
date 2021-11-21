@@ -133,3 +133,4 @@ dmypy.json
 
 # Weights & Biases
 wandb/
+/pse/outputs/
