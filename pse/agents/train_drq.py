@@ -86,7 +86,8 @@ class Workspace:
             self.metric_data_loader = None
         self._metric_data_iter = None
 
-        self.video_recorder = VideoRecorder(root_dir=self.work_dir if self.cfg.save_video else None, log_to_wandb=True)
+        self.video_recorder = VideoRecorder(root_dir=self.work_dir if self.cfg.save_video else None,
+                                            log_to_wandb=self.cfg.use_wandb)
 
         self.timer = utils.Timer()
         self._global_step = 0
