@@ -1,9 +1,9 @@
 ---
-name: "base experiment"
+name: "base_experiment"
 
 ---
 name: "DEFAULT"
-path: "/home/kit/anthropomatik/ht9329/pse/results/"
+path: "/home/kit/anthropomatik/ht9329/pse/slurm_outputs/"
 repetitions: 1
 
 ---
@@ -16,3 +16,5 @@ cpus-per-task: 4
 time: "12:00:00"
 sbatch_args:
   gres: "gpu:1"
+sh_lines:
+  - "poetry shell"
