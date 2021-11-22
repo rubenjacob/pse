@@ -1,4 +1,7 @@
 ---
+name: "base experiment"
+
+---
 name: "DEFAULT"
 path: "${HOME}/pse/results/"
 repetitions: 1
