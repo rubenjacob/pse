@@ -125,6 +125,7 @@ class DrQV2Agent:
         self.critic.train(training)
 
     def act(self, obs, step, eval_mode):
+        print(obs.shape)
         obs = torch.as_tensor(obs, device=self.device)
         obs = self.encoder(obs.unsqueeze(0))
         stddev = utils.schedule(self.stddev_schedule, step)

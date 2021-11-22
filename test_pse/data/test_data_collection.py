@@ -9,8 +9,7 @@ import pytest
 from dm_env import specs
 from dm_env._environment import TimeStep, StepType
 
-from pse.data.data_collection import collect_pair_episodes, process_episode, save_processed_episode, \
-    collect_and_save_data
+from pse.data.data_collection import collect_pair_episodes, collect_and_save_data
 from pse.envs.extended_time_step import ExtendedTimeStep
 from pse.envs.wrappers import ExtendedTimeStepWrapper
 
