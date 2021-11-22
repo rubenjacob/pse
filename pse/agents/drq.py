@@ -17,13 +17,13 @@ class Encoder(nn.Module):
         self.repr_dim = 32 * 35 * 35
 
         self.convnet = nn.Sequential(nn.Conv2d(in_channels=obs_shape[0], out_channels=32,
-                                               kernel_size=(3,), stride=2), nn.ReLU(),
+                                               kernel_size=(3, 3), stride=(2, 2)), nn.ReLU(),
                                      nn.Conv2d(in_channels=32, out_channels=32,
-                                               kernel_size=(3,), stride=1), nn.ReLU(),
+                                               kernel_size=(3, 3), stride=(1, 1)), nn.ReLU(),
                                      nn.Conv2d(in_channels=32, out_channels=32,
-                                               kernel_size=(3,), stride=1), nn.ReLU(),
+                                               kernel_size=(3, 3), stride=(1, 1)), nn.ReLU(),
                                      nn.Conv2d(in_channels=32, out_channels=32,
-                                               kernel_size=(3,), stride=1), nn.ReLU())
+                                               kernel_size=(3, 3), stride=(1, 1)), nn.ReLU())
 
         self.apply(utils.weight_init)
 
