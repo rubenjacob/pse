@@ -8,4 +8,4 @@ batch_size: 2
 device: cpu
 use_wandb: false
 experiment: test_experiment
-root_dir: $HOME/pse/debug_results/
+root_dir: pse/debug_results/${experiment}

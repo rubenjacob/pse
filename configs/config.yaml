@@ -37,7 +37,7 @@ experiment: debug_baseline_experiment
 lr: 1e-4
 feature_dim: 50
 # directories
-root_dir: $HOME/pse/results/${experiment}/${task_name}
+root_dir: pse/results/${experiment}/${task_name}
 
 agent:
   _target_: pse.agents.drq.DrQV2Agent

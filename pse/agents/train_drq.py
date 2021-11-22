@@ -27,7 +27,7 @@ def make_agent(obs_spec: specs.Array, action_spec: specs.Array, cfg):
 
 class Workspace:
     def __init__(self, cfg):
-        self.work_dir = cfg.root_dir
+        self.work_dir = Path.home() / Path(cfg.root_dir)
         print(f'workspace: {self.work_dir}')
         self.snapshot_dir = self.work_dir / 'snapshots'
         self.snapshot_dir.mkdir(exist_ok=True)
