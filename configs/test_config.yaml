@@ -1,5 +1,6 @@
 defaults:
   - config
+  - _self_
 
 num_seed_frames: 4
 num_train_frames: 8
