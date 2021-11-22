@@ -30,7 +30,7 @@ class Workspace:
         self.work_dir = Path.home() / Path(cfg.root_dir)
         print(f'workspace: {self.work_dir}')
         self.snapshot_dir = self.work_dir / 'snapshots'
-        self.snapshot_dir.mkdir(exist_ok=True)
+        self.snapshot_dir.mkdir(parents=True, exist_ok=True)
 
         self.cfg = cfg
 
