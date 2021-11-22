@@ -87,11 +87,10 @@ class Critic(nn.Module):
 
 class DrQV2Agent:
     def __init__(self, obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau, num_expl_steps,
-                 update_every_steps, stddev_schedule, stddev_clip, use_tb, use_wandb):
+                 update_every_steps, stddev_schedule, stddev_clip, use_wandb):
         self.device = device
         self.critic_target_tau = critic_target_tau
         self.update_every_steps = update_every_steps
-        self.use_tb = use_tb
         self.num_expl_steps = num_expl_steps
         self.stddev_schedule = stddev_schedule
         self.stddev_clip = stddev_clip
@@ -152,11 +151,10 @@ class DrQV2Agent:
         q1, q2 = self.critic(obs, action)
         critic_loss = F.mse_loss(q1, target_q) + F.mse_loss(q2, target_q)
 
-        if self.use_tb:
-            metrics['critic_target_q'] = target_q.mean().item()
-            metrics['critic_q1'] = q1.mean().item()
-            metrics['critic_q2'] = q2.mean().item()
-            metrics['critic_loss'] = critic_loss.item()
+        metrics['critic_target_q'] = target_q.mean().item()
+        metrics['critic_q1'] = q1.mean().item()
+        metrics['critic_q2'] = q2.mean().item()
+        metrics['critic_loss'] = critic_loss.item()
 
         # optimize encoder and critic
         self.encoder_opt.zero_grad(set_to_none=True)
@@ -184,10 +182,9 @@ class DrQV2Agent:
         actor_loss.backward()
         self.actor_opt.step()
 
-        if self.use_tb:
-            metrics['actor_loss'] = actor_loss.item()
-            metrics['actor_logprob'] = log_prob.mean().item()
-            metrics['actor_ent'] = dist.entropy().sum(dim=-1).mean().item()
+        metrics['actor_loss'] = actor_loss.item()
+        metrics['actor_logprob'] = log_prob.mean().item()
+        metrics['actor_ent'] = dist.entropy().sum(dim=-1).mean().item()
 
         return metrics
 
@@ -208,8 +205,7 @@ class DrQV2Agent:
         with torch.no_grad():
             next_obs = self.encoder(next_obs)
 
-        if self.use_tb:
-            metrics['batch_reward'] = reward.mean().item()
+        metrics['batch_reward'] = reward.mean().item()
 
         # update critic
         metrics.update(self.update_critic(obs, action, reward, discount, next_obs, step))

@@ -63,7 +63,7 @@ def test_collect_pair_episodes(make_mock: mock.MagicMock, test_env: ExtendedTime
 @mock.patch('pse.data.data_collection.load_policy')
 def test_collect_and_save_data(load_policy_mock: mock.MagicMock, collect_mock: mock.MagicMock,
                                fake_policy: Callable[[np.ndarray], np.ndarray]):
-    episodes_dir = Path.cwd() / 'episodes'
+    episodes_dir = Path.cwd() / 'metric_data'
     shutil.rmtree(episodes_dir)
     num_episodes = 5
 

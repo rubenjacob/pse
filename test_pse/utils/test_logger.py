@@ -8,11 +8,12 @@ from pse.utils.logger import Logger
 
 @pytest.fixture()
 def logger() -> Logger:
-    return Logger(log_dir=Path('/tmp/test_log_dir'), use_tb=False, use_wandb=True, cfg={'run_name': 'wandb_test'})
+    return Logger(log_dir=Path('/tmp/test_log_dir'), use_wandb=True)
 
 
+@mock.patch('pse.utils.logger.MetersGroup._dump_to_csv')
 @mock.patch('pse.utils.logger.wandb')
-def test_logger_logs_to_wandb(wandb_mock: mock.MagicMock, logger: Logger):
+def test_logger_logs_to_wandb(wandb_mock: mock.MagicMock, dump_mock: mock.MagicMock, logger: Logger):
     for step in range(5):
         with logger.log_and_dump_ctx(step=step, train_or_eval='train') as log:
             log('step', step)

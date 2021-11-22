@@ -2,12 +2,11 @@ import csv
 import datetime
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, Union, Optional, Tuple, List
+from typing import Dict, Union, Optional, Tuple, List
 
 import torch
 import wandb
 from termcolor import colored
-from torch.utils.tensorboard import SummaryWriter
 
 Value = Union[int, float]
 
@@ -128,25 +127,16 @@ class MetersGroup(object):
 
 
 class Logger(object):
-    def __init__(self, log_dir: Path, use_tb: bool, use_wandb: bool, cfg: Dict[str, Any]):
+    def __init__(self, log_dir: Path, use_wandb: bool):
         self._log_dir = log_dir
         self._train_meters_group = MetersGroup(log_dir / 'train.csv', formatting=COMMON_TRAIN_FORMAT,
                                                use_wandb=use_wandb)
         self._eval_meters_group = MetersGroup(log_dir / 'eval.csv', formatting=COMMON_EVAL_FORMAT, use_wandb=use_wandb)
-        if use_tb:
-            self._summary_writer = SummaryWriter(log_dir=str(log_dir / 'tb'))
-        else:
-            self._summary_writer = None
-
-    def _try_sw_log(self, key: str, value: Value, step: int):
-        if self._summary_writer is not None:
-            self._summary_writer.add_scalar(key, value, step)
 
     def log(self, key: str, value: Union[Value, torch.Tensor], step: int):
         assert key.startswith('train') or key.startswith('eval')
         if type(value) == torch.Tensor:
             value = value.item()
-        self._try_sw_log(key, value, step)
         meters_group = self._train_meters_group if key.startswith('train') else self._eval_meters_group
         meters_group.log(key, value)
 

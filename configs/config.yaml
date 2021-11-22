@@ -29,7 +29,6 @@ batch_size: 256
 seed: 1
 device: cuda
 save_video: true
-use_tb: false
 use_wandb: true
 # experiment
 experiment: debug_baseline_experiment
@@ -47,7 +46,6 @@ agent:
   lr: ${lr}
   critic_target_tau: 0.01
   update_every_steps: 2
-  use_tb: ${use_tb}
   use_wandb: ${use_wandb}
   num_expl_steps: 2000
   hidden_dim: 1024
