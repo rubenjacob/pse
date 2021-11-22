@@ -3,7 +3,7 @@ name: "base experiment"
 
 ---
 name: "DEFAULT"
-path: "$/home/kit/anthropomatik/ht9329/pse/results/"
+path: "/home/kit/anthropomatik/ht9329/pse/results/"
 repetitions: 1
 
 ---
