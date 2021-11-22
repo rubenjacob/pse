@@ -4,7 +4,7 @@ from pse.agents.train_drq import Workspace
 from pse.agents.utils import set_seed_everywhere
 
 
-@hydra.main(config_path='../configs/config.yaml', strict=True)
+@hydra.main(config_path='../configs', config_name='config.yaml')
 def main(cfg):
     set_seed_everywhere(seed=cfg.seed)
 
