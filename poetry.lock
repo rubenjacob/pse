@@ -265,16 +265,23 @@ numpy = ">=1.14.5"
 
 [[package]]
 name = "hydra-core"
-version = "1.1.1"
+version = "1.2.0.dev1"
 description = "A framework for elegantly configuring complex applications"
 category = "main"
 optional = false
 python-versions = "*"
+develop = false
 
 [package.dependencies]
 antlr4-python3-runtime = "4.8"
 importlib-resources = {version = "*", markers = "python_version < \"3.9\""}
 omegaconf = ">=2.1.0,<2.2.0"
+
+[package.source]
+type = "git"
+url = "git@github.com:rubenjacob/hydra.git"
+reference = "9ee8a8d78367c53145b60e9989d17cb8badb3a49"
+resolved_reference = "9ee8a8d78367c53145b60e9989d17cb8badb3a49"
 
 [[package]]
 name = "idna"
@@ -770,7 +777,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8"
-content-hash = "452f75785b9574338b094c36f4d411bf4635dcbbfce42a4847d8e91d9b145ec4"
+content-hash = "b162adecf8629de72302fbc52428e6167e21522fff89ad091c4de160c434b5f4"
 
 [metadata.files]
 absl-py = [
@@ -882,10 +889,7 @@ h5py = [
     {file = "h5py-3.6.0-cp39-cp39-win_amd64.whl", hash = "sha256:9fd8a14236fdd092a20c0bdf25c3aba3777718d266fabb0fdded4fcf252d1630"},
     {file = "h5py-3.6.0.tar.gz", hash = "sha256:8752d2814a92aba4e2b2a5922d2782d0029102d99caaf3c201a566bc0b40db29"},
 ]
-hydra-core = [
-    {file = "hydra-core-1.1.1.tar.gz", hash = "sha256:d396d4d979ff66e2d654b8ef5435ad3b6bbd093c4330f3ed316c339d5d741269"},
-    {file = "hydra_core-1.1.1-py3-none-any.whl", hash = "sha256:928b154d8105db4ee67d768e3cd0f74ca9373121fc99dee54488393b17a31929"},
-]
+hydra-core = []
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},
     {file = "idna-3.3.tar.gz", hash = "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"},
