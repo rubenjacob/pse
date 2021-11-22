@@ -3,9 +3,9 @@ defaults:
   - task@_global_: ball_in_cup_catch
 
 # environment settings
-num_train_videos: 2
 num_eval_videos: 30
 train_background_videos: ['bear']  # either 'training' or a list of valid video names from DAVIS17_TRAINING_VIDEOS
+num_train_videos: 1  # only used if train_background_videos is set to 'training'
 dynamic_background: true
 # task settings
 frame_stack: 4

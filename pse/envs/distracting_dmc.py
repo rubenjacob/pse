@@ -14,7 +14,7 @@ def make(name: str,
          seed: int,
          frame_shape: Tuple[int, int, int] = (84, 84, 3),
          num_videos: int = 2,
-         background_videos: Union[str, List[str]] = 'train',
+         background_videos: Union[str, List[str]] = 'training',
          dynamic_background: bool = True) -> ExtendedTimeStepWrapper:
     splits = name.split('_')
     task = splits[-1]
@@ -26,7 +26,7 @@ def make(name: str,
         'camera_id': 2 if domain == 'quadruped' else 0
     }
     background_kwargs = {
-        'num_videos': num_videos,
+        'num_videos': num_videos if background_videos == 'training' else None,
         'dynamic': dynamic_background,
         'dataset_path': os.path.join(os.environ.get('HOME'), 'DAVIS/JPEGImages/480p'),
         'dataset_videos': background_videos
