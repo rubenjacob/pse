@@ -155,8 +155,10 @@ class Workspace:
         time_step = self.train_env.reset()
         self.replay_storage.add(time_step=time_step)
         metrics = None
+        print("Started training...")
         while train_until_step(step=self.global_step):
             if time_step.last():
+                print(f"Finished episode {self.global_episode}")
                 self._global_episode += 1
                 # wait until all the metrics schema is populated
                 if metrics is not None:
@@ -164,6 +166,7 @@ class Workspace:
                     elapsed_time, total_time = self.timer.reset()
                     episode_frame = episode_step * self.cfg.action_repeat
                     with self.logger.log_and_dump_ctx(self.global_frame, train_or_eval='train') as log:
+
                         log('fps', episode_frame / elapsed_time)
                         log('total_time', total_time)
                         log('episode_reward', episode_reward)
@@ -183,6 +186,7 @@ class Workspace:
 
             # try to evaluate
             if eval_every_step(step=self.global_step):
+                print(f"Evaluating for {self.cfg.num_eval_episodes}...")
                 self.logger.log(key='eval_total_time', value=self.timer.total_time(), step=self.global_frame)
                 self.eval()
 
@@ -192,11 +196,13 @@ class Workspace:
 
             # try to update the agent
             if not seed_until_step(step=self.global_step):
+                print(f"E: {self.global_episode}, S: {self.global_step}: Updating agent")
                 metrics = self.agent.update(replay_iter=self.replay_iter, step=self.global_step,
                                             metric_data_iter=self.metric_data_iter)
                 self.logger.log_metrics(metrics, self.global_frame, train_or_eval='train')
 
             # take env step
+            print(f"E: {self.global_episode}, S: {self.global_step}: Acting in environment")
             time_step = self.train_env.step(action)
             episode_reward += time_step.reward
             self.replay_storage.add(time_step)
@@ -205,6 +211,7 @@ class Workspace:
 
     def save_snapshot(self):
         snapshot = self.snapshot_dir / f'snapshot-{self.global_step:07d}.pt'
+        print(f"Saving snapshot to {str(snapshot)}")
         keys_to_save = ['agent', 'timer', '_global_step', '_global_episode']
         payload = {k: self.__dict__[k] for k in keys_to_save}
         with snapshot.open('wb') as f:

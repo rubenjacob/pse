@@ -31,7 +31,7 @@ device: cuda
 save_video: true
 use_wandb: true
 # experiment
-experiment: baseline_experiment
+experiment: baseline_experiment_2
 # agent
 lr: 1e-4
 feature_dim: 50
