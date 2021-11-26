@@ -35,7 +35,8 @@ class Workspace:
         self.cfg = cfg
 
         if self.cfg.use_wandb:
-            wandb.init(config=self.cfg, project="pse", entity="rjacob", name=self.cfg.experiment)
+            wandb.init(config=self.cfg, project="pse", entity="rjacob",
+                       name=f"{self.cfg.experiment}_{self.cfg.task_name}")
 
         self.logger = Logger(self.work_dir, use_wandb=self.cfg.use_wandb)
 
