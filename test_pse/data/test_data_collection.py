@@ -74,7 +74,7 @@ def test_collect_and_save_data(load_policy_mock: mock.MagicMock, collect_mock: m
     collect_mock.return_value = episodes, paired_episodes
     load_policy_mock.return_value = fake_policy
 
-    collect_and_save_data(env_name='test_env', snapshot_dir=Path.cwd() / 'foo', max_episode_len=2, total_episodes=5,
+    collect_and_save_data(task_name='test_env', snapshot_dir=Path.cwd() / 'foo', max_episode_len=2, total_episodes=5,
                           episodes_per_seed=5, frame_stack=3, action_repeat=4, discount=0.99)
 
     assert len(list(episodes_dir.glob('*.npz'))) == num_episodes

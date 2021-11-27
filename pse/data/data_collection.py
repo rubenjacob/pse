@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Tuple, Optional, List, Callable
 
+import hydra
 from absl import app, flags
 import numpy as np
 
@@ -13,7 +14,7 @@ INIT_DATA_SEED = 42  # Answer to life, the universe and everything
 FLAGS = flags.FLAGS
 
 
-def collect_and_save_data(env_name: str, snapshot_dir: Path, max_episode_len: int, total_episodes: int,
+def collect_and_save_data(task_name: str, snapshot_dir: Path, max_episode_len: int, total_episodes: int,
                           episodes_per_seed: int, frame_stack: int, action_repeat: int, discount: float):
     policy = load_policy(snapshot_dir=snapshot_dir)
     num_seeds = total_episodes // episodes_per_seed
@@ -22,9 +23,11 @@ def collect_and_save_data(env_name: str, snapshot_dir: Path, max_episode_len: in
     episodes_dir.mkdir(exist_ok=True)
 
     for seed in range(INIT_DATA_SEED, INIT_DATA_SEED + num_seeds):
-        episodes, paired_episodes = collect_pair_episodes(policy=policy, env_name=env_name, random_seed=seed,
+        print(f"Seed {seed} starting to collect metric data.")
+        episodes, paired_episodes = collect_pair_episodes(policy=policy, env_name=task_name, random_seed=seed,
                                                           max_steps=max_steps, max_episodes=episodes_per_seed,
                                                           frame_stack=frame_stack, action_repeat=action_repeat)
+        print(f"Seed {seed} done collecting metric data. Saving...")
         for episode, paired_episode in zip(episodes, paired_episodes):
             # Write (obs1, obs2, metric) tuples
             processed_episode = process_episode(episode, paired_episode, gamma=discount)
@@ -96,26 +99,10 @@ def save_processed_episode(processed_episode: Tuple[np.ndarray, np.ndarray, np.n
     np.savez(pth, obs1=processed_episode[0], obs2=processed_episode[1], metric_vals=processed_episode[2])
 
 
-def main(_):
-    flags.DEFINE_integer('max_episode_len', 1000, 'Number of steps in an episode.')
-    flags.DEFINE_string('env_name', 'cartpole-swingup', 'Name of the environment.')
-    flags.DEFINE_integer('total_episodes', 500, 'Number of steps in an episode.')
-    flags.DEFINE_integer('episodes_per_seed', 10, 'Number of episode per random seed.')
-    flags.DEFINE_string('snapshot_dir', None, 'Directory where model snapshot is stored.')
-    flags.DEFINE_integer('action_repeat', 2, '')
-    flags.DEFINE_integer('frame_stack', 3, '')
-    flags.DEFINE_float('discount', 0.99, '')
-
-    collect_and_save_data(
-        env_name=FLAGS.env_name,
-        snapshot_dir=FLAGS.snapshot_dir,
-        max_episode_len=FLAGS.max_episode_len,
-        total_episodes=FLAGS.total_episodes,
-        episodes_per_seed=FLAGS.episodes_per_seed,
-        action_repeat=FLAGS.action_repeat,
-        frame_stack=FLAGS.frame_stack,
-        discount=FLAGS.discount)
+@hydra.main(config_path="../../configs", config_name="data_collection_config.yaml")
+def main(cfg):
+    collect_and_save_data(**cfg)
 
 
 if __name__ == "__main__":
-    app.run(main)
+    main()
