@@ -219,6 +219,7 @@ class Workspace:
             torch.save(payload, f)
 
     def load_snapshot(self, step_to_load: Optional[int] = None):
-        payload = utils.load_snapshot_payload(snapshot_dir=self.snapshot_dir, step_to_load=step_to_load)
+        payload = utils.load_snapshot_payload(snapshot_dir=self.snapshot_dir, step_to_load=step_to_load,
+                                              device=self.cfg.device)
         for k, v in payload.items():
             self.__dict__[k] = v

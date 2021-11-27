@@ -89,7 +89,8 @@ def make_dir(*path_parts):
     return dir_path
 
 
-def load_snapshot_payload(snapshot_dir: Path, step_to_load: Optional[int] = None) -> Dict[str, Any]:
+def load_snapshot_payload(snapshot_dir: Path, step_to_load: Optional[int] = None,
+                          device: str = 'cuda') -> Dict[str, Any]:
     if step_to_load is not None:
         snapshot = snapshot_dir / f'snapshot-{step_to_load:07d}.pt'
     else:
@@ -97,7 +98,10 @@ def load_snapshot_payload(snapshot_dir: Path, step_to_load: Optional[int] = None
         latest_step = max([int(str(file)[-10:-3]) for file in snapshot_files])
         snapshot = snapshot_dir / f'snapshot-{latest_step:07d}.pt'
     with snapshot.open('rb') as f:
-        return torch.load(f)
+        if device == 'cuda':
+            return torch.load(f)
+        else:
+            return torch.load(f, map_location=torch.device('cpu'))
 
 
 def tie_weights(src, trg):
