@@ -31,7 +31,7 @@ class TestEnv(dm_env.Environment):
 
 
 @pytest.fixture()
-def test_env() -> ExtendedTimeStepWrapper:
+def mock_env() -> ExtendedTimeStepWrapper:
     test_env = TestEnv()
     return ExtendedTimeStepWrapper(env=test_env)
 
@@ -45,9 +45,9 @@ def fake_policy() -> Callable[[np.ndarray], np.ndarray]:
 
 
 @mock.patch('pse.data.data_collection.make')
-def test_collect_pair_episodes(make_mock: mock.MagicMock, test_env: ExtendedTimeStepWrapper,
+def test_collect_pair_episodes(make_mock: mock.MagicMock, mock_env,
                                fake_policy: Callable[[np.ndarray], np.ndarray]):
-    make_mock.return_value = test_env
+    make_mock.return_value = mock_env
     max_episodes = 5
     max_steps = 10
     episodes, paired_episodes = collect_pair_episodes(policy=fake_policy, env_name='ball_in_cup_catch', frame_stack=3,
@@ -74,7 +74,7 @@ def test_collect_and_save_data(load_policy_mock: mock.MagicMock, collect_mock: m
     collect_mock.return_value = episodes, paired_episodes
     load_policy_mock.return_value = fake_policy
 
-    collect_and_save_data(task_name='test_env', snapshot_dir=Path.cwd() / 'foo', max_episode_len=2, total_episodes=5,
-                          episodes_per_seed=5, frame_stack=3, action_repeat=4, discount=0.99)
+    collect_and_save_data(task_name='test_env', snapshot_dir=str(Path.cwd() / 'foo'), max_episode_len=2,
+                          total_episodes=5, episodes_per_seed=5, frame_stack=3, action_repeat=4, discount=0.99)
 
     assert len(list(episodes_dir.glob('*.npz'))) == num_episodes
