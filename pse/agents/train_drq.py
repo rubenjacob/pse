@@ -197,13 +197,11 @@ class Workspace:
 
             # try to update the agent
             if not seed_until_step(step=self.global_step):
-                print(f"E: {self.global_episode}, S: {self.global_step}: Updating agent")
                 metrics = self.agent.update(replay_iter=self.replay_iter, step=self.global_step,
                                             metric_data_iter=self.metric_data_iter)
                 self.logger.log_metrics(metrics, self.global_frame, train_or_eval='train')
 
             # take env step
-            print(f"E: {self.global_episode}, S: {self.global_step}: Acting in environment")
             time_step = self.train_env.step(action)
             episode_reward += time_step.reward
             self.replay_storage.add(time_step)
