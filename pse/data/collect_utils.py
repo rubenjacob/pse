@@ -33,7 +33,7 @@ def load_policy(snapshot_dir: Path, action_shape) -> Callable[[np.ndarray], np.n
     def policy(obs: np.ndarray) -> np.ndarray:
         obs = torch.as_tensor(obs)
         obs = encoder(obs.unsqueeze(0))
-        dist = actor(obs, stddev=1)
+        dist = actor(obs, std=1)
         action = dist.mean
 
         with torch.no_grad():
