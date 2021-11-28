@@ -16,7 +16,12 @@ def collect_and_save_data(task_name: str, snapshot_dir: str, max_episode_len: in
                           episodes_per_seed: int, frame_stack: int, action_repeat: int, discount: float):
     print("Starting data collection.")
     snapshot_dir = Path(snapshot_dir)
-    policy = load_policy(snapshot_dir=snapshot_dir)
+
+    env = make(name=task_name, frame_stack=frame_stack, action_repeat=action_repeat, seed=1, num_videos=1,
+               background_videos=['bear'])
+    action_shape = env.action_spec().shape
+    del env
+    policy = load_policy(snapshot_dir=snapshot_dir, action_shape=action_shape)
     num_seeds = total_episodes // episodes_per_seed
     max_steps = max_episode_len * episodes_per_seed
     episodes_dir = snapshot_dir.parent / 'metric_data'

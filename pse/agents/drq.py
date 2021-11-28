@@ -140,7 +140,8 @@ class DrQV2Agent:
             if step < self.num_expl_steps:
                 action.uniform_(-1.0, 1.0)
 
-        return action.detach().numpy()[0]
+        with torch.no_grad():
+            return action.cpu().numpy()[0]
 
     def update_critic(self, obs, action, reward, discount, next_obs, step):
         metrics = dict()
