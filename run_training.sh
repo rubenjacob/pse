@@ -2,7 +2,7 @@
 
 #SBATCH --ntasks=1
 #SBATCH -c 4
-#SBATCH -t 24:00:00
+#SBATCH -t 23:59:00
 #SBATCH --mem=20gb
 #SBATCH -p gpu_4
 #SBATCH -J  ruben_pse_baseline
