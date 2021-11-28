@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Tuple, Optional, List, Callable
 
 import hydra
-from absl import app, flags
 import numpy as np
 
 from pse.data.collect_utils import load_policy, compute_metric, ScriptedPolicy
@@ -11,11 +10,11 @@ from pse.envs.extended_time_step import ExtendedTimeStep
 from pse.envs.wrappers import ExtendedTimeStepWrapper
 
 INIT_DATA_SEED = 42  # Answer to life, the universe and everything
-FLAGS = flags.FLAGS
 
 
 def collect_and_save_data(task_name: str, snapshot_dir: str, max_episode_len: int, total_episodes: int,
                           episodes_per_seed: int, frame_stack: int, action_repeat: int, discount: float):
+    print("Starting data collection.")
     snapshot_dir = Path(snapshot_dir)
     policy = load_policy(snapshot_dir=snapshot_dir)
     num_seeds = total_episodes // episodes_per_seed

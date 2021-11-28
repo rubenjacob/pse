@@ -97,6 +97,7 @@ def load_snapshot_payload(snapshot_dir: Path, step_to_load: Optional[int] = None
         snapshot_files = snapshot_dir.glob('*.pt')
         latest_step = max([int(str(file)[-10:-3]) for file in snapshot_files])
         snapshot = snapshot_dir / f'snapshot-{latest_step:07d}.pt'
+    print(f"Loading snapshot {str(snapshot)}")
     with snapshot.open('rb') as f:
         if device == 'cuda':
             return torch.load(f)
