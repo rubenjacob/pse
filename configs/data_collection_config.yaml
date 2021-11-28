@@ -1,7 +1,7 @@
 max_episode_len: 1000
 task_name: ball_in_cup_catch
 total_episodes: 500
-episodes_per_seed: 50
+episodes_per_seed: 10
 snapshot_dir: /home/kit/anthropomatik/ht9329/pse/results/baseline_experiment/${task_name}/snapshots/
 action_repeat: 2
 frame_stack: 3

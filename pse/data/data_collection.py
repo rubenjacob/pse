@@ -16,12 +16,7 @@ def collect_and_save_data(task_name: str, snapshot_dir: str, max_episode_len: in
                           episodes_per_seed: int, frame_stack: int, action_repeat: int, discount: float):
     print("Starting data collection.")
     snapshot_dir = Path(snapshot_dir)
-
-    env = make(name=task_name, frame_stack=frame_stack, action_repeat=action_repeat, seed=1, num_videos=1,
-               background_videos=['bear'])
-    action_shape = env.action_spec().shape
-    del env
-    policy = load_policy(snapshot_dir=snapshot_dir, action_shape=action_shape)
+    policy = load_policy(snapshot_dir=snapshot_dir)
     num_seeds = total_episodes // episodes_per_seed
     max_steps = max_episode_len * episodes_per_seed
     episodes_dir = snapshot_dir.parent / 'metric_data'
@@ -94,6 +89,8 @@ def run_env(env: ExtendedTimeStepWrapper, policy: Callable[[np.ndarray], np.ndar
             replay_buffer.append(extended_time_step)
             extended_time_step = env.reset()
             num_episodes += 1
+            if num_episodes >= 2:
+                raise ValueError
 
     return replay_buffer
 

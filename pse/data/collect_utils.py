@@ -3,9 +3,7 @@ from pathlib import Path
 from typing import Union, List, Callable, Tuple
 
 import numpy as np
-import torch
 
-from pse.agents.drq import Encoder, DrQV2Agent, Actor
 from pse.agents.utils import load_snapshot_payload
 
 from pse.envs.extended_time_step import ExtendedTimeStep
@@ -22,24 +20,9 @@ class ScriptedPolicy:
         return action
 
 
-def load_policy(snapshot_dir: Path, action_shape) -> Callable[[np.ndarray], np.ndarray]:
+def load_policy(snapshot_dir: Path) -> Callable[[np.ndarray], np.ndarray]:
     payload = load_snapshot_payload(snapshot_dir=snapshot_dir, device='cpu')
-    agent: DrQV2Agent = payload['agent']
-    encoder = Encoder(obs_shape=(9, 84, 84))
-    actor = Actor(repr_dim=encoder.repr_dim, action_shape=action_shape, feature_dim=50, hidden_dim=1024)
-    encoder.load_state_dict(agent.encoder.state_dict())
-    actor.load_state_dict(agent.actor.state_dict())
-
-    def policy(obs: np.ndarray) -> np.ndarray:
-        obs = torch.as_tensor(obs)
-        obs = encoder(obs.unsqueeze(0))
-        dist = actor(obs, std=1)
-        action = dist.mean
-
-        with torch.no_grad():
-            return action.cpu().numpy()[0]
-
-    return policy
+    return partial(payload['agent'].act, step=100000, eval_mode=True, device='cpu')  # step doesn't matter in eval mode
 
 
 def _get_action(replay: List[ExtendedTimeStep]) -> np.ndarray:
