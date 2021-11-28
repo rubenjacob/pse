@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - task@_global_: ball_in_cup_catch
+  - task@_global_: cheetah_run
 
 # environment settings
 num_eval_videos: 30
@@ -31,12 +31,12 @@ device: cuda
 save_video: true
 use_wandb: true
 # experiment
-experiment: baseline_experiment_2
+experiment: baseline
 # agent
 lr: 1e-4
 feature_dim: 50
 # directories
-root_dir: pse/results/${experiment}/${task_name}
+root_dir: pse/results/${task_name}/${experiment}
 
 agent:
   _target_: pse.agents.drq.DrQV2Agent
