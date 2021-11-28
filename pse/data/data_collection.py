@@ -27,7 +27,7 @@ def collect_and_save_data(task_name: str, snapshot_dir: str, max_episode_len: in
         episodes, paired_episodes = collect_pair_episodes(policy=policy, env_name=task_name, random_seed=seed,
                                                           max_steps=max_steps, max_episodes=episodes_per_seed,
                                                           frame_stack=frame_stack, action_repeat=action_repeat)
-        print(f"Seed {seed} done collecting metric data. Saving...")
+        print(f"Seed {seed} done collecting metric data.")
         for episode, paired_episode in zip(episodes, paired_episodes):
             # Write (obs1, obs2, metric) tuples
             processed_episode = process_episode(episode, paired_episode, gamma=discount)
@@ -89,8 +89,6 @@ def run_env(env: ExtendedTimeStepWrapper, policy: Callable[[np.ndarray], np.ndar
             replay_buffer.append(extended_time_step)
             extended_time_step = env.reset()
             num_episodes += 1
-            if num_episodes >= 2:
-                raise ValueError
 
     return replay_buffer
 
@@ -98,6 +96,7 @@ def run_env(env: ExtendedTimeStepWrapper, policy: Callable[[np.ndarray], np.ndar
 def save_processed_episode(processed_episode: Tuple[np.ndarray, np.ndarray, np.ndarray], episodes_dir: Path):
     episode_number = len(list(episodes_dir.glob('*.npz')))
     pth = episodes_dir / f"episode{episode_number: 05d}.npz"
+    print(f"Saving metric data to {pth}")
     np.savez(pth, obs1=processed_episode[0], obs2=processed_episode[1], metric_vals=processed_episode[2])
 
 
