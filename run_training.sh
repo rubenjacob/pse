@@ -4,7 +4,7 @@
 #SBATCH -c 4
 #SBATCH -t 23:59:00
 #SBATCH --mem=20gb
-#SBATCH -p gpu_4
+#SBATCH -p gpu_8
 #SBATCH -J  ruben_pse_baseline
 #SBATCH --gres=gpu:1
 
