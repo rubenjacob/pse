@@ -28,6 +28,7 @@ seed: 1
 device: cuda
 save_video: true
 use_wandb: true
+wandb_resume_run_id: none  # set to enable resuming W&B run when resuming from snapshot
 # agent
 lr: 1e-4
 feature_dim: 50

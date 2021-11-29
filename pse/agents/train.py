@@ -35,12 +35,13 @@ class Workspace:
         self.cfg = cfg
 
         if self.cfg.use_wandb:
-            if self.cfg.resume_from_snapshot:
-                resume_args = {'resume': 'must'}
+            if self.cfg.resume_from_snapshot and self.cfg.wandb_resume_run_id is not None:
+                print(f"Resuming W&B run with id {self.cfg.wandb_resume_run_id}")
+                resume_args = {'resume': 'must', 'id': self.cfg.wandb_resume_run_id}
             else:
                 resume_args = {}
             run_name = f"{self.cfg.task_name}_{self.cfg.experiment}"
-            wandb.init(config=self.cfg, project="pse", name=run_name, id=run_name, **resume_args)
+            wandb.init(config=self.cfg, project="pse", name=run_name, **resume_args)
 
         self.logger = Logger(self.work_dir, use_wandb=self.cfg.use_wandb)
 
