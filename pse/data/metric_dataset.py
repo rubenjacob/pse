@@ -17,8 +17,8 @@ class MetricDataset(IterableDataset):
         episode = list(self._data_dir.glob('*.npz'))[index]
         return _load_episode(episode)
 
-    def __init__(self, data_dir: Path):
-        self._data_dir = data_dir
+    def __init__(self, data_dir: str):
+        self._data_dir = Path(data_dir)
 
     def _sample(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         episode = random.choice(list(self._data_dir.glob('*.npz')))
@@ -29,6 +29,6 @@ class MetricDataset(IterableDataset):
             yield self._sample()
 
 
-def make_metric_data_loader(data_dir: Path, num_workers: int) -> torch.utils.data.DataLoader:
+def make_metric_data_loader(data_dir: str, num_workers: int) -> torch.utils.data.DataLoader:
     dataset = MetricDataset(data_dir=data_dir)
     return torch.utils.data.DataLoader(dataset=dataset, num_workers=num_workers, prefetch_factor=10)
