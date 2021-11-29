@@ -6,7 +6,6 @@
 #SBATCH --mem=94gb
 #SBATCH --partition=single
 #SBATCH --job-name=ruben_pse_debug
-#SBATCH --gres=gpu:1
 
 #SBATCH -D /pfs/data5/home/kit/anthropomatik/ht9329/pse
 #SBATCH -o /pfs/data5/home/kit/anthropomatik/ht9329/pse/debug_results/slurm_outputs/slurmlog/out_%A_%a.log
