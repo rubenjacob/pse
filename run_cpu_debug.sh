@@ -2,9 +2,9 @@
 
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=30
+#SBATCH --time=59
 #SBATCH --mem=94gb
-#SBATCH --partition=dev_single
+#SBATCH --partition=single
 #SBATCH --job-name=ruben_pse_debug
 #SBATCH --gres=gpu:1
 
