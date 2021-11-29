@@ -1,7 +1,7 @@
 defaults:
   - pse_config
   - _self_
-  - task@_global_: ball_in_cup_catch
+  - override task@_global_: ball_in_cup_catch
 
 num_eval_episodes: 1
 num_seed_frames: 1000
