@@ -35,8 +35,12 @@ class Workspace:
         self.cfg = cfg
 
         if self.cfg.use_wandb:
-            wandb.init(config=self.cfg, project="pse", entity="rjacob",
-                       name=f"{self.cfg.experiment}_{self.cfg.task_name}")
+            if self.cfg.resume_from_snapshot:
+                resume_args = {'resume': 'must'}
+            else:
+                resume_args = {}
+            run_name = f"{self.cfg.task_name}_{self.cfg.experiment}"
+            wandb.init(config=self.cfg, project="pse", name=run_name, id=run_name, **resume_args)
 
         self.logger = Logger(self.work_dir, use_wandb=self.cfg.use_wandb)
 

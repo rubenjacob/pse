@@ -1,6 +1,6 @@
 import hydra
 
-from pse.agents.train_drq import Workspace
+from pse.agents.train import Workspace
 
 
 @hydra.main(config_path="../configs", config_name="test_config.yaml")

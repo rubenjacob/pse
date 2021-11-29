@@ -1,6 +1,6 @@
 import hydra
 
-from pse.agents.train_drq import Workspace
+from pse.agents.train import Workspace
 from pse.agents.utils import set_seed_everywhere
 
 
