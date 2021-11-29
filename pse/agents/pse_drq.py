@@ -16,7 +16,7 @@ def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor,
     neg_logits1 = similarity_matrix
 
     col_indices = torch.argmin(metric_vals, dim=1)
-    pos_indices1 = torch.stack([torch.range(0, metric_vals.size()[0]), col_indices], dim=1)
+    pos_indices1 = torch.stack([torch.arange(0, metric_vals.size()[0]), col_indices], dim=1)
     pos_logits1 = torch_gather_nd(similarity_matrix, pos_indices1)
 
     if use_coupling_weights:
@@ -53,7 +53,7 @@ class PSEDrQAgent(DrQV2Agent):
 
     def _encode_obs(self, obs: torch.Tensor) -> torch.Tensor:
         obs = torch.as_tensor(obs, device=self.device)
-        encoded = self.encoder(obs.unsqueeze(0))
+        encoded = self.encoder(obs)
         return self.actor.trunk(encoded)
 
     def contrastive_metric_loss(self, obs1: torch.Tensor, obs2: torch.Tensor, metric_vals: torch.Tensor,
@@ -65,8 +65,8 @@ class PSEDrQAgent(DrQV2Agent):
             metric_vals.transpose(0, 1)
 
         indices = sample_indices(metric_vals.size()[0], sort=return_representation)
-        obs1 = torch.gather(obs1, index=indices, dim=0)
-        metric_vals = torch.gather(metric_vals, index=indices, dim=0)
+        obs1 = obs1[indices]
+        metric_vals = metric_vals[indices]
 
         representation_1 = self._encode_obs(obs1)
         representation_2 = self._encode_obs(obs2)
@@ -87,6 +87,8 @@ class PSEDrQAgent(DrQV2Agent):
 
         episode = next(self.metric_data_iter)
         obs1, obs2, metric_vals = utils.to_torch(episode, self.device)
+        obs1, obs2, metric_vals = torch.squeeze(obs1.float()), torch.squeeze(obs2.float()), \
+            torch.squeeze(metric_vals.float())
         obs1, obs2 = self.aug(obs1), self.aug(obs2)
 
         self._contrastive_optimizer.zero_grad()

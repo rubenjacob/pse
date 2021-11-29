@@ -5,7 +5,7 @@ from pse.data.metric_dataset import MetricDataset
 
 def test_data_loading():
     num_samples = 10
-    buffer = MetricDataset(data_dir=Path.cwd() / 'metric_data')
+    buffer = MetricDataset(data_dir=str(Path.cwd() / 'metric_data'))
 
     for i, loaded_episode in enumerate(iter(buffer)):
         if i >= num_samples:
