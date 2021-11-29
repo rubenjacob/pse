@@ -13,9 +13,8 @@ absl-py = "^1.0.0"
 termcolor = "^1.1.0"
 dm_control = { git = "git@github.com:deepmind/dm_control.git", rev = "ff8a9caac9d845c1e1f669c272294b3355d6d855" }
 distracting_control = { git = "git@github.com:rubenjacob/distracting_control_without_tf.git" }
-hydra-core = { git = "git@github.com:rubenjacob/hydra.git", rev = "9ee8a8d78367c53145b60e9989d17cb8badb3a49" }
+hydra-core = "^1.1.0"
 wandb = "^0.12"
-cw2 = { git = "git@github.com:ALRhub/cw2.git" }
 imageio = "^2.9"
 imageio-ffmpeg = "*"
 
