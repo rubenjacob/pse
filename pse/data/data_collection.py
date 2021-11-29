@@ -12,15 +12,18 @@ from pse.envs.wrappers import ExtendedTimeStepWrapper
 INIT_DATA_SEED = 42  # Answer to life, the universe and everything
 
 
-def collect_and_save_data(task_name: str, snapshot_dir: str, max_episode_len: int, total_episodes: int,
-                          episodes_per_seed: int, frame_stack: int, action_repeat: int, discount: float):
+def collect_and_save_data(task_name: str, snapshot_dir: str, metric_data_dir: str, max_episode_len: int,
+                          total_episodes: int, episodes_per_seed: int, frame_stack: int, action_repeat: int,
+                          discount: float):
     print("Starting data collection.")
     snapshot_dir = Path(snapshot_dir)
+    episodes_dir = Path(metric_data_dir)
+    episodes_dir.mkdir(exist_ok=True)
     policy = load_policy(snapshot_dir=snapshot_dir)
+
+    total_episodes = total_episodes - len(list(episodes_dir.glob('*.npz')))
     num_seeds = total_episodes // episodes_per_seed
     max_steps = max_episode_len * episodes_per_seed
-    episodes_dir = snapshot_dir.parent / 'metric_data'
-    episodes_dir.mkdir(exist_ok=True)
 
     for seed in range(INIT_DATA_SEED, INIT_DATA_SEED + num_seeds):
         print(f"Seed {seed} starting to collect metric data.")

@@ -1,0 +1,13 @@
+defaults:
+  - base_config
+  - _self_
+
+experiment: pse
+train_background_videos: 'training'  # either 'training' or a list of valid video names from DAVIS17_TRAINING_VIDEOS
+num_train_videos: 2  # only used if train_background_videos is set to 'training'
+
+agent:
+  _target_: pse.agents.pse_drq.PSEDrQAgent
+  contrastive_loss_weight: 1.0
+  contrastive_loss_temperature: 0.1
+  metric_data_dir: /home/kit/anthropomatik/ht9329/pse/results/${task_name}/metric_data

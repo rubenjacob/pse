@@ -1,5 +1,5 @@
 defaults:
-  - config
+  - base_config
   - _self_
 
 num_seed_frames: 4
@@ -8,5 +8,5 @@ save_snapshot: false
 batch_size: 2
 device: cpu
 use_wandb: false
-experiment: test_experiment
+experiment: test_pse
 root_dir: pse/debug_results/${experiment}

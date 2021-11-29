@@ -1,0 +1,10 @@
+defaults:
+  - base_config
+  - _self_
+
+experiment: optimal_policy
+train_background_videos: ['bear']
+num_train_videos: 1
+
+agent:
+  _target_: pse.agents.drq.DrQV2Agent

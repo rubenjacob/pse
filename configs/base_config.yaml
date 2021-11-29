@@ -4,8 +4,6 @@ defaults:
 
 # environment settings
 num_eval_videos: 30
-train_background_videos: ['bear']  # either 'training' or a list of valid video names from DAVIS17_TRAINING_VIDEOS
-num_train_videos: 1  # only used if train_background_videos is set to 'training'
 dynamic_background: true
 # task settings
 frame_stack: 3
@@ -30,8 +28,6 @@ seed: 1
 device: cuda
 save_video: true
 use_wandb: true
-# experiment
-experiment: baseline
 # agent
 lr: 1e-4
 feature_dim: 50
@@ -39,7 +35,6 @@ feature_dim: 50
 root_dir: pse/results/${task_name}/${experiment}
 
 agent:
-  _target_: pse.agents.drq.DrQV2Agent
   obs_shape: ??? # to be specified later
   action_shape: ??? # to be specified later
   device: ${device}

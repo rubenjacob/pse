@@ -1,0 +1,10 @@
+defaults:
+  - base_config
+  - _self_
+
+experiment: baseline
+train_background_videos: 'training'  # either 'training' or a list of valid video names from DAVIS17_TRAINING_VIDEOS
+num_train_videos: 2  # only used if train_background_videos is set to 'training'
+
+agent:
+  _target_: pse.agents.drq.DrQV2Agent
