@@ -68,9 +68,9 @@ class Workspace:
                       specs.Array((1,), np.float32, 'reward'),
                       specs.Array((1,), np.float32, 'discount'))
 
-        self.replay_storage = ReplayBufferStorage(data_specs=data_specs, replay_dir=self.work_dir / 'buffer')
-
-        self.replay_loader = make_replay_loader(replay_dir=self.work_dir / 'buffer',
+        buffer_dir = self.work_dir / 'buffer'
+        self.replay_storage = ReplayBufferStorage(data_specs=data_specs, replay_dir=buffer_dir)
+        self.replay_loader = make_replay_loader(replay_dir=buffer_dir,
                                                 max_size=self.cfg.replay_buffer_size,
                                                 batch_size=self.cfg.batch_size,
                                                 num_workers=self.cfg.replay_buffer_num_workers,
@@ -78,14 +78,6 @@ class Workspace:
                                                 nstep=self.cfg.nstep,
                                                 discount=self.cfg.discount)
         self._replay_iter = None
-
-        metric_data_dir = self.work_dir / 'metric_data'
-        if metric_data_dir.exists():
-            self.metric_data_loader = make_metric_data_loader(data_dir=metric_data_dir,
-                                                              num_workers=self.cfg.replay_buffer_num_workers)
-        else:
-            self.metric_data_loader = None
-        self._metric_data_iter = None
 
         self.video_recorder = VideoRecorder(root_dir=self.work_dir if self.cfg.save_video else None,
                                             log_to_wandb=self.cfg.use_wandb)
@@ -111,14 +103,6 @@ class Workspace:
         if self._replay_iter is None:
             self._replay_iter = iter(self.replay_loader)
         return self._replay_iter
-
-    @property
-    def metric_data_iter(self) -> Optional[Iterator[DataLoader]]:
-        if self.metric_data_loader is None:
-            return None
-        if self._metric_data_iter is None:
-            self._metric_data_iter = iter(self.metric_data_loader)
-        return self._metric_data_iter
 
     def eval(self):
         step, episode, total_reward = 0, 0, 0
@@ -197,8 +181,7 @@ class Workspace:
 
             # try to update the agent
             if not seed_until_step(step=self.global_step):
-                metrics = self.agent.update(replay_iter=self.replay_iter, step=self.global_step,
-                                            metric_data_iter=self.metric_data_iter)
+                metrics = self.agent.update(replay_iter=self.replay_iter, step=self.global_step)
                 self.logger.log_metrics(metrics, self.global_frame, train_or_eval='train')
 
             # take env step

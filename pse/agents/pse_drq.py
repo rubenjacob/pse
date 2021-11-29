@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 
 from pse.agents import utils
 from pse.agents.drq import DrQV2Agent
+from pse.data.metric_dataset import make_metric_data_loader
 from pse.utils.helper_functions import torch_gather_nd, torch_scatter_nd_update, EPS, sample_indices, cosine_similarity
 
 
@@ -32,13 +33,23 @@ def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor,
 
 class PSEDrQAgent(DrQV2Agent):
     def __init__(self, obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau, num_expl_steps,
-                 update_every_steps, stddev_schedule, stddev_clip, use_wandb, contrastive_loss_weight=1.0,
-                 contrastive_loss_temperature=0.1):
+                 update_every_steps, stddev_schedule, stddev_clip, use_wandb, contrastive_loss_weight,
+                 contrastive_loss_temperature, metric_data_dir):
         super().__init__(obs_shape, action_shape, device, lr, feature_dim, hidden_dim, critic_target_tau,
                          num_expl_steps, update_every_steps, stddev_schedule, stddev_clip, use_wandb)
         self._contrastive_optimizer = torch.optim.Adam(self.actor.parameters(), lr=lr)
         self._contrastive_loss_weight = contrastive_loss_weight
         self._contrastive_loss_temperature = contrastive_loss_temperature
+        self.metric_data_loader = make_metric_data_loader(data_dir=metric_data_dir, num_workers=4)
+        self._metric_data_iter = None
+
+    @property
+    def metric_data_iter(self) -> Optional[Iterator[DataLoader]]:
+        if self.metric_data_loader is None:
+            return None
+        if self._metric_data_iter is None:
+            self._metric_data_iter = iter(self.metric_data_loader)
+        return self._metric_data_iter
 
     def _encode_obs(self, obs: torch.Tensor) -> torch.Tensor:
         obs = torch.as_tensor(obs, device=self.device)
@@ -71,12 +82,10 @@ class PSEDrQAgent(DrQV2Agent):
         else:
             return alignment_loss
 
-    def update(self, replay_iter: Iterator[DataLoader], step: int,
-               metric_data_iter: Optional[Iterator[DataLoader]] = None):
+    def update(self, replay_iter: Iterator[DataLoader], step: int):
         metrics: Dict[str, Any] = super(PSEDrQAgent, self).update(replay_iter, step)
 
-        assert metric_data_iter is not None
-        episode = next(metric_data_iter)
+        episode = next(self.metric_data_iter)
         obs1, obs2, metric_vals = utils.to_torch(episode, self.device)
         obs1, obs2 = self.aug(obs1), self.aug(obs2)
 

@@ -194,7 +194,7 @@ class DrQV2Agent:
 
         return metrics
 
-    def update(self, replay_iter, step, metric_data_iter: Optional[Iterator[DataLoader]] = None):
+    def update(self, replay_iter, step):
         metrics = dict()
 
         if step % self.update_every_steps != 0:
