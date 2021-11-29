@@ -156,7 +156,6 @@ class Workspace:
                     elapsed_time, total_time = self.timer.reset()
                     episode_frame = episode_step * self.cfg.action_repeat
                     with self.logger.log_and_dump_ctx(self.global_frame, train_or_eval='train') as log:
-
                         log('fps', episode_frame / elapsed_time)
                         log('total_time', total_time)
                         log('episode_reward', episode_reward)
@@ -175,7 +174,7 @@ class Workspace:
                 episode_reward = 0
 
             # try to evaluate
-            if eval_every_step(step=self.global_step):
+            if eval_every_step(step=self.global_step) and self.global_step != 0:
                 print(f"Evaluating for {self.cfg.num_eval_episodes}...")
                 self.logger.log(key='eval_total_time', value=self.timer.total_time(), step=self.global_frame)
                 self.eval()
