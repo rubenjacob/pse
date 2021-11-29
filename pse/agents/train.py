@@ -41,7 +41,7 @@ class Workspace:
             else:
                 resume_args = {}
             run_name = f"{self.cfg.task_name}_{self.cfg.experiment}"
-            wandb.init(config=self.cfg, project="pse", name=run_name, **resume_args)
+            wandb.init(config=dict(self.cfg), project="pse", name=run_name, **resume_args)
 
         self.logger = Logger(self.work_dir, use_wandb=self.cfg.use_wandb)
 
