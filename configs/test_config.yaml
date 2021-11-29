@@ -1,12 +1,18 @@
 defaults:
-  - base_config
+  - pse_config
   - _self_
+  - task@_global_: ball_in_cup_catch
 
-num_seed_frames: 4
-num_train_frames: 8
+num_eval_episodes: 1
+num_seed_frames: 1000
+num_train_frames: 3000
 save_snapshot: false
 batch_size: 2
+feature_dim: 3
 device: cpu
 use_wandb: false
-experiment: test_pse
+experiment: test_pse_ball_in_cup_catch
 root_dir: pse/debug_results/${experiment}
+agent:
+  hidden_dim: 12
+  metric_data_dir: /home/kit/anthropomatik/ht9329/pse/debug_results/metric_data
