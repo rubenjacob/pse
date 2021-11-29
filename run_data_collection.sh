@@ -2,8 +2,8 @@
 
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=12:00:00
-#SBATCH --mem=20gb
+#SBATCH --time=23:59:00
+#SBATCH --mem=40gb
 #SBATCH --partition=single
 #SBATCH --job-name=ruben_pse_data_collection
 
