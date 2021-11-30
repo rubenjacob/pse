@@ -16,7 +16,8 @@ def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor,
     neg_logits1 = similarity_matrix
 
     col_indices = torch.argmin(metric_vals, dim=1)
-    pos_indices1 = torch.stack([torch.arange(0, metric_vals.size()[0]), col_indices], dim=1)
+    row_indices = torch.arange(0, metric_vals.size()[0]).to(device=col_indices.device)
+    pos_indices1 = torch.stack([row_indices, col_indices], dim=1)
     pos_logits1 = torch_gather_nd(similarity_matrix, pos_indices1)
 
     if use_coupling_weights:
@@ -57,7 +58,7 @@ class PSEDrQAgent(DrQV2Agent):
         return self.actor.trunk(encoded)
 
     def contrastive_metric_loss(self, obs1: torch.Tensor, obs2: torch.Tensor, metric_vals: torch.Tensor,
-                                use_coupling_weights: bool = False,
+                                use_coupling_weights: bool = True,
                                 coupling_temperature: float = 0.1, return_representation: bool = False,
                                 temperature: float = 1.0) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if np.random.randint(2) == 1:
