@@ -52,6 +52,12 @@ class PSEDrQAgent(DrQV2Agent):
             self._metric_data_iter = iter(self.metric_data_loader)
         return self._metric_data_iter
 
+    def __getstate__(self):
+        """Make the agent picklable"""
+        d = dict(self.__dict__)
+        d['_metric_data_iter'] = None
+        return d
+
     def _encode_obs(self, obs: torch.Tensor) -> torch.Tensor:
         obs = torch.as_tensor(obs, device=self.device)
         encoded = self.encoder(obs)
