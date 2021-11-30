@@ -22,7 +22,7 @@ def cosine_similarity(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 def torch_gather_nd(params: torch.Tensor, indices: torch.Tensor) -> torch.Tensor:
     """params is of "n" dimensions and has size [x1, x2, x3, ..., xn], indices is of 2 dimensions
      and has size [num_samples, m] (m <= n)"""
-    return params[indices.transpose(0, 1).long().numpy().tolist()]
+    return params[indices.transpose(0, 1).long()]
 
 
 def torch_scatter_nd_update(tensor: torch.Tensor, indices: torch.Tensor, updates: torch.Tensor) -> torch.Tensor:
