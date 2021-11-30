@@ -11,19 +11,19 @@ from pse.utils.helper_functions import torch_gather_nd, torch_scatter_nd_update,
 
 
 def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor, temperature: float,
-                     coupling_temperature: float, use_coupling_weights: bool) -> torch.Tensor:
+                     coupling_temperature: float, use_coupling_weights: bool, device: str) -> torch.Tensor:
     similarity_matrix /= temperature
     neg_logits1 = similarity_matrix
 
     col_indices = torch.argmin(metric_vals, dim=1)
     row_indices = torch.arange(0, metric_vals.size()[0]).to(device=col_indices.device)
     pos_indices1 = torch.stack([row_indices, col_indices], dim=1)
-    pos_logits1 = torch_gather_nd(similarity_matrix, pos_indices1)
+    pos_logits1 = torch_gather_nd(similarity_matrix, pos_indices1, out_device=device)
 
     if use_coupling_weights:
         metric_vals /= coupling_temperature
         coupling = torch.exp(-metric_vals)
-        pos_weights1 = -torch_gather_nd(metric_vals, pos_indices1)
+        pos_weights1 = -torch_gather_nd(metric_vals, pos_indices1, out_device=device)
         pos_logits1 += pos_weights1
         neg_weights = torch.log((1.0 - coupling) + EPS)
         neg_logits1 += torch_scatter_nd_update(neg_weights, pos_indices1, pos_weights1)
@@ -76,7 +76,8 @@ class PSEDrQAgent(DrQV2Agent):
                                           metric_vals=metric_vals,
                                           temperature=temperature,
                                           use_coupling_weights=use_coupling_weights,
-                                          coupling_temperature=coupling_temperature)
+                                          coupling_temperature=coupling_temperature,
+                                          device=self.device)
 
         if return_representation:
             return alignment_loss, similarity_matrix
