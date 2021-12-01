@@ -16,3 +16,4 @@ root_dir: pse/debug_results/${experiment}
 agent:
   hidden_dim: 12
   metric_data_dir: /home/kit/anthropomatik/ht9329/pse/debug_results/metric_data
+  optimal_policy_dir: /home/kit/anthropomatik/ht9329/pse/debug_results/optimal_policy/snapshots/

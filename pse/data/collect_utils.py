@@ -20,9 +20,9 @@ class ScriptedPolicy:
         return action
 
 
-def load_policy(snapshot_dir: Path) -> Callable[[np.ndarray], np.ndarray]:
-    payload = load_snapshot_payload(snapshot_dir=snapshot_dir, device='cpu')
-    return partial(payload['agent'].act, step=100000, eval_mode=True, device='cpu')  # step doesn't matter in eval mode
+def load_policy(snapshot_dir: Path, device: str = 'cpu') -> Callable[[np.ndarray], np.ndarray]:
+    payload = load_snapshot_payload(snapshot_dir=snapshot_dir, device=device)
+    return partial(payload['agent'].act, step=100000, eval_mode=True, device=device)  # step doesn't matter in eval mode
 
 
 def _get_action(replay: List[ExtendedTimeStep]) -> np.ndarray:

@@ -7,29 +7,7 @@ from torch.utils.data import DataLoader
 from pse.agents import utils
 from pse.agents.drq import DrQV2Agent
 from pse.data.metric_dataset import make_metric_data_loader
-from pse.utils.helper_functions import torch_gather_nd, torch_scatter_nd_update, EPS, sample_indices, cosine_similarity
-
-
-def contrastive_loss(similarity_matrix: torch.Tensor, metric_vals: torch.Tensor, temperature: float,
-                     coupling_temperature: float, use_coupling_weights: bool, device: str) -> torch.Tensor:
-    similarity_matrix /= temperature
-    neg_logits1 = similarity_matrix
-
-    col_indices = torch.argmin(metric_vals, dim=1)
-    row_indices = torch.arange(0, metric_vals.size()[0]).to(device=col_indices.device)
-    pos_indices1 = torch.stack([row_indices, col_indices], dim=1)
-    pos_logits1 = torch_gather_nd(similarity_matrix, pos_indices1, out_device=device)
-
-    if use_coupling_weights:
-        metric_vals /= coupling_temperature
-        coupling = torch.exp(-metric_vals)
-        pos_weights1 = -torch_gather_nd(metric_vals, pos_indices1, out_device=device)
-        pos_logits1 += pos_weights1
-        neg_weights = torch.log((1.0 - coupling) + EPS)
-        neg_logits1 += torch_scatter_nd_update(neg_weights, pos_indices1, pos_weights1)
-
-    neg_logits1 = torch.logsumexp(neg_logits1, dim=1)
-    return torch.mean(neg_logits1 - pos_logits1)
+from pse.utils.helper_functions import sample_indices, cosine_similarity, contrastive_loss
 
 
 class PSEDrQAgent(DrQV2Agent):
@@ -63,10 +41,10 @@ class PSEDrQAgent(DrQV2Agent):
         encoded = self.encoder(obs)
         return self.actor.trunk(encoded)
 
-    def contrastive_metric_loss(self, obs1: torch.Tensor, obs2: torch.Tensor, metric_vals: torch.Tensor,
-                                use_coupling_weights: bool = True,
-                                coupling_temperature: float = 0.1, return_representation: bool = False,
-                                temperature: float = 1.0) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    def representation_alignment_loss(self, obs1: torch.Tensor, obs2: torch.Tensor, metric_vals: torch.Tensor,
+                                      use_coupling_weights: bool = True, coupling_temperature: float = 0.1,
+                                      return_representation: bool = False, temperature: float = 1.0) \
+            -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if np.random.randint(2) == 1:
             obs2, obs1 = obs1, obs2
             metric_vals.transpose(0, 1)
@@ -90,7 +68,7 @@ class PSEDrQAgent(DrQV2Agent):
         else:
             return alignment_loss
 
-    def update(self, replay_iter: Iterator[DataLoader], step: int):
+    def update(self, replay_iter: Iterator[DataLoader], step: int) -> Dict[str, Any]:
         metrics: Dict[str, Any] = super(PSEDrQAgent, self).update(replay_iter, step)
 
         episode = next(self.metric_data_iter)
@@ -100,7 +78,7 @@ class PSEDrQAgent(DrQV2Agent):
         obs1, obs2 = self.aug(obs1), self.aug(obs2)
 
         self._contrastive_optimizer.zero_grad()
-        contr_loss = self._contrastive_loss_weight * self.contrastive_metric_loss(obs1, obs2, metric_vals)
+        contr_loss = self._contrastive_loss_weight * self.representation_alignment_loss(obs1, obs2, metric_vals)
 
         metrics['contrastive_loss'] = contr_loss
 
