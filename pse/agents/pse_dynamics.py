@@ -88,12 +88,12 @@ class PSEDynamicsAgent(PSEDrQAgent):
     def initialize_optimal_policy(self, optimal_policy_dir: str) -> Callable[[torch.Tensor], torch.Tensor]:
         agent: DrQV2Agent = load_snapshot_payload(snapshot_dir=Path(optimal_policy_dir), device=self.device)['agent']
 
-        def optimal_policy(obs: torch.Tensor) -> torch.Tensor:
-            encoded_obs = agent.encoder(obs)
-            action = agent.actor(encoded_obs, std=1).mean
+        def optimal_policy(h: torch.Tensor) -> torch.Tensor:
+            mu = agent.actor.policy(h)
+            action = torch.tanh(mu)
 
             with torch.no_grad():
-                return action[0]
+                return action
 
         return optimal_policy
 
