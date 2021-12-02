@@ -126,12 +126,18 @@ class PSEDynamicsAgent(PSEDrQAgent):
         pred_next_latent_mu1, pred_next_latent_sigma1 = self._transition_model(torch.cat([h1, action1], dim=1))
         pred_next_latent_mu2, pred_next_latent_sigma2 = self._transition_model(torch.cat([h2, action2], dim=1))
 
-        action_dist = F.smooth_l1_loss(action1, action2, reduction='none')
+        print(action1.size())
+        action_diff = action1.unsqueeze(1) - action2.unsqueeze(0)
+        print(action_diff.size())
+        action_dist = torch.mean(torch.abs(action_diff), dim=-1)
+        print(action_dist.size())
+        print(pred_next_latent_mu1)
+        print(pred_next_latent_sigma1)
         transition_dist = torch.sqrt(
-            (pred_next_latent_mu1 - pred_next_latent_mu2).pow(2) +
-            (pred_next_latent_sigma1 - pred_next_latent_sigma2).pow(2)
+            torch.mean((pred_next_latent_mu1.unsqueeze(1) - pred_next_latent_mu2.unsqueeze(0)).pow(2), dim=-1) +
+            torch.mean((pred_next_latent_sigma1.unsqueeze(1) - pred_next_latent_sigma2.unsqueeze(0)).pow(2), dim=-1)
         )
-        return action_dist + discount * transition_dist
+        return action_dist + torch.mul(discount, transition_dist)
 
     def update(self, replay_iter: Iterator[DataLoader], step: int) -> Dict[str, Any]:
         metrics = dict()
