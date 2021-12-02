@@ -131,7 +131,7 @@ class PSEDynamicsAgent(PSEDrQAgent):
             (pred_next_latent_mu1.unsqueeze(1) - pred_next_latent_mu2.unsqueeze(0)).pow(2) +
             (pred_next_latent_sigma1.unsqueeze(1) - pred_next_latent_sigma2.unsqueeze(0)).pow(2)
         ), dim=-1)
-        return action_dist + discount.mean() * transition_dist
+        return action_dist + 0.99 * transition_dist
 
     def update(self, replay_iter: Iterator[DataLoader], step: int) -> Dict[str, Any]:
         metrics = dict()
