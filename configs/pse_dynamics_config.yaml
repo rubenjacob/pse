@@ -1,0 +1,9 @@
+defaults:
+  - pse_config
+  - _self_
+
+experiment: pse_dynamics
+
+agent:
+  _target_: pse.agents.pse_dynamics.PSEDynamicsAgent
+  optimal_policy_dir: /home/kit/anthropomatik/ht9329/pse/results/${task_name}/optimal_policy/snapshots
