@@ -82,6 +82,13 @@ class PSEDynamicsAgent(PSEDrQAgent):
 
         self._optimal_policy = self.initialize_optimal_policy(optimal_policy_dir)
 
+    def __getstate__(self) -> Dict[str, Any]:
+        """Make the agent picklable for torch.save"""
+        d = super(PSEDynamicsAgent, self).__getstate__()
+        d['_optimal_policy'] = None
+        del d['initialize_optimal_policy']
+        return d
+
     def initialize_optimal_policy(self, optimal_policy_dir: str) -> Callable[[torch.Tensor], torch.Tensor]:
         agent: DrQV2Agent = load_snapshot_payload(snapshot_dir=Path(optimal_policy_dir), device=self.device)['agent']
 
