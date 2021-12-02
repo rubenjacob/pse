@@ -115,7 +115,7 @@ class PSEDynamicsAgent(PSEDrQAgent):
         metrics['transition_loss'] = transition_loss
         return metrics
 
-    def calculate_metric_vals(self, obs1: torch.Tensor, obs2: torch.Tensor, discount: torch.Tensor) -> torch.Tensor:
+    def calculate_metric_vals(self, obs1: torch.Tensor, obs2: torch.Tensor) -> torch.Tensor:
         h1 = self._encode_obs(obs1)
         h2 = self._encode_obs(obs2)
         action1 = self._optimal_policy(h1)
@@ -131,7 +131,7 @@ class PSEDynamicsAgent(PSEDrQAgent):
             (pred_next_latent_mu1.unsqueeze(1) - pred_next_latent_mu2.unsqueeze(0)).pow(2) +
             (pred_next_latent_sigma1.unsqueeze(1) - pred_next_latent_sigma2.unsqueeze(0)).pow(2)
         ), dim=-1)
-        return action_dist + 0.99 * transition_dist
+        return action_dist + torch.mul(0.99, transition_dist)
 
     def update(self, replay_iter: Iterator[DataLoader], step: int) -> Dict[str, Any]:
         metrics = dict()
@@ -168,7 +168,8 @@ class PSEDynamicsAgent(PSEDrQAgent):
         obs1, obs2 = torch.squeeze(obs1.float()), torch.squeeze(obs2.float())
         obs1, obs2 = self.aug(obs1), self.aug(obs2)
 
-        metric_vals = self.calculate_metric_vals(obs1, obs2, discount)
+        with torch.no_grad():
+            metric_vals = self.calculate_metric_vals(obs1, obs2)
 
         self._contrastive_optimizer.zero_grad()
         contr_loss = self._contrastive_loss_weight * self.representation_alignment_loss(obs1, obs2, metric_vals)

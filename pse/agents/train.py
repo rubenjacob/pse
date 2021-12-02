@@ -182,6 +182,8 @@ class Workspace:
             # sample action
             with torch.no_grad(), utils.eval_mode(self.agent):
                 action = self.agent.act(obs=time_step.observation, step=self.global_step, eval_mode=False)
+                if np.any(np.isnan(action)):
+                    print('Action is nan!')
 
             # try to update the agent
             if not seed_until_step(step=self.global_step):
@@ -189,7 +191,7 @@ class Workspace:
                 self.logger.log_metrics(metrics, self.global_frame, train_or_eval='train')
 
             # take env step
-            print(action)
+
             time_step = self.train_env.step(action)
             episode_reward += time_step.reward
             self.replay_storage.add(time_step)
