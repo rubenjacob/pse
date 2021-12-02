@@ -85,8 +85,7 @@ class PSEDynamicsAgent(PSEDrQAgent):
     def __getstate__(self) -> Dict[str, Any]:
         """Make the agent picklable for torch.save"""
         d = super(PSEDynamicsAgent, self).__getstate__()
-        d['_optimal_policy'] = None
-        del d['initialize_optimal_policy']
+        d = {k: v for k, v in d.items() if 'optimal_policy' not in k}
         return d
 
     def initialize_optimal_policy(self, optimal_policy_dir: str) -> Callable[[torch.Tensor], torch.Tensor]:
