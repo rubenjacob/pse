@@ -189,6 +189,7 @@ class Workspace:
                 self.logger.log_metrics(metrics, self.global_frame, train_or_eval='train')
 
             # take env step
+            print(action)
             time_step = self.train_env.step(action)
             episode_reward += time_step.reward
             self.replay_storage.add(time_step)
