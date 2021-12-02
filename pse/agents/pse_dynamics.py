@@ -134,6 +134,7 @@ class PSEDynamicsAgent(PSEDrQAgent):
         print(action_dist.size())
         print(discount)
         print(transition_dist.size())
+        _ = action_dist + transition_dist
         return action_dist + discount * transition_dist
 
     def update(self, replay_iter: Iterator[DataLoader], step: int) -> Dict[str, Any]:
