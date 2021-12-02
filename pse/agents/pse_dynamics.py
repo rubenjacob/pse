@@ -125,6 +125,8 @@ class PSEDynamicsAgent(PSEDrQAgent):
         action2 = self._optimal_policy(h2)
         pred_next_latent_mu1, pred_next_latent_sigma1 = self._transition_model(torch.cat([h1, action1], dim=1))
         pred_next_latent_mu2, pred_next_latent_sigma2 = self._transition_model(torch.cat([h2, action2], dim=1))
+        pred_next_latent_mu1, pred_next_latent_sigma1 = pred_next_latent_mu1.mean(dim=0), pred_next_latent_sigma1.mean(dim=0)
+        pred_next_latent_mu2, pred_next_latent_sigma2 = pred_next_latent_mu2.mean(dim=0), pred_next_latent_sigma2.mean(dim=0)
 
         print(action1.size())
         action_diff = action1.unsqueeze(1) - action2.unsqueeze(0)
@@ -134,8 +136,8 @@ class PSEDynamicsAgent(PSEDrQAgent):
         print(pred_next_latent_mu1.size())
         print(pred_next_latent_sigma1.size())
         transition_dist = torch.mean(torch.sqrt(
-            (pred_next_latent_mu1 - pred_next_latent_mu2).pow(2) +
-            (pred_next_latent_sigma1 - pred_next_latent_sigma2).pow(2)
+            (pred_next_latent_mu1.unsqueeze(1) - pred_next_latent_mu2.unsqueeze(0)).pow(2) +
+            (pred_next_latent_sigma1.unsqueeze(1) - pred_next_latent_sigma2.unsqueeze(0)).pow(2)
         ), dim=-1)
         print(transition_dist.size())
         return action_dist + torch.mul(discount, transition_dist)
