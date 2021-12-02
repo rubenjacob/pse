@@ -131,12 +131,13 @@ class PSEDynamicsAgent(PSEDrQAgent):
         print(action_diff.size())
         action_dist = torch.mean(torch.abs(action_diff), dim=-1)
         print(action_dist.size())
-        print(pred_next_latent_mu1)
-        print(pred_next_latent_sigma1)
-        transition_dist = torch.sqrt(
-            torch.mean((pred_next_latent_mu1.unsqueeze(1) - pred_next_latent_mu2.unsqueeze(0)).pow(2), dim=-1) +
-            torch.mean((pred_next_latent_sigma1.unsqueeze(1) - pred_next_latent_sigma2.unsqueeze(0)).pow(2), dim=-1)
-        )
+        print(pred_next_latent_mu1.size())
+        print(pred_next_latent_sigma1.size())
+        transition_dist = torch.mean(torch.sqrt(
+            (pred_next_latent_mu1 - pred_next_latent_mu2).pow(2) +
+            (pred_next_latent_sigma1 - pred_next_latent_sigma2).pow(2)
+        ), dim=-1)
+        print(transition_dist.size())
         return action_dist + torch.mul(discount, transition_dist)
 
     def update(self, replay_iter: Iterator[DataLoader], step: int) -> Dict[str, Any]:
