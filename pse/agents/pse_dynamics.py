@@ -1,18 +1,15 @@
 import random
 from pathlib import Path
-from typing import Any, Dict, Iterator, Tuple, Union, Callable
+from typing import Any, Dict, Iterator, Callable
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-import torch.nn.functional as F
 
 from pse.agents import utils
 from pse.agents.drq import DrQV2Agent
 from pse.agents.pse_drq import PSEDrQAgent
 from pse.agents.utils import load_snapshot_payload
-from pse.data.collect_utils import load_policy
-from pse.utils.helper_functions import cosine_similarity, contrastive_loss, sample_indices
 
 
 class ProbabilisticTransitionModel(nn.Module):
@@ -128,19 +125,16 @@ class PSEDynamicsAgent(PSEDrQAgent):
         pred_next_latent_mu1, pred_next_latent_sigma1 = pred_next_latent_mu1.mean(dim=0), pred_next_latent_sigma1.mean(dim=0)
         pred_next_latent_mu2, pred_next_latent_sigma2 = pred_next_latent_mu2.mean(dim=0), pred_next_latent_sigma2.mean(dim=0)
 
-        print(action1.size())
         action_diff = action1.unsqueeze(1) - action2.unsqueeze(0)
-        print(action_diff.size())
         action_dist = torch.mean(torch.abs(action_diff), dim=-1)
-        print(action_dist.size())
-        print(pred_next_latent_mu1.size())
-        print(pred_next_latent_sigma1.size())
         transition_dist = torch.mean(torch.sqrt(
             (pred_next_latent_mu1.unsqueeze(1) - pred_next_latent_mu2.unsqueeze(0)).pow(2) +
             (pred_next_latent_sigma1.unsqueeze(1) - pred_next_latent_sigma2.unsqueeze(0)).pow(2)
         ), dim=-1)
+        print(action_dist.size())
+        print(discount)
         print(transition_dist.size())
-        return action_dist + torch.mul(discount, transition_dist)
+        return action_dist + discount * transition_dist
 
     def update(self, replay_iter: Iterator[DataLoader], step: int) -> Dict[str, Any]:
         metrics = dict()
