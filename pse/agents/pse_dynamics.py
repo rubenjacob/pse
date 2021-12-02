@@ -115,7 +115,7 @@ class PSEDynamicsAgent(PSEDrQAgent):
         metrics['transition_loss'] = transition_loss
         return metrics
 
-    def calculate_metric_vals(self, obs1: torch.Tensor, obs2: torch.Tensor, discount: float) -> torch.Tensor:
+    def calculate_metric_vals(self, obs1: torch.Tensor, obs2: torch.Tensor, discount: torch.Tensor) -> torch.Tensor:
         h1 = self._encode_obs(obs1)
         h2 = self._encode_obs(obs2)
         action1 = self._optimal_policy(h1)
@@ -131,11 +131,7 @@ class PSEDynamicsAgent(PSEDrQAgent):
             (pred_next_latent_mu1.unsqueeze(1) - pred_next_latent_mu2.unsqueeze(0)).pow(2) +
             (pred_next_latent_sigma1.unsqueeze(1) - pred_next_latent_sigma2.unsqueeze(0)).pow(2)
         ), dim=-1)
-        print(action_dist.size())
-        print(discount)
-        print(transition_dist.size())
-        _ = action_dist + transition_dist
-        return action_dist + discount * transition_dist
+        return action_dist + discount.mean() * transition_dist
 
     def update(self, replay_iter: Iterator[DataLoader], step: int) -> Dict[str, Any]:
         metrics = dict()
